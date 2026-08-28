@@ -1,0 +1,86 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-heading: 'M PLUS Rounded 1c', ui-rounded, system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  --color-wii-blue-50: #eaf6ff;
+  --color-wii-blue-200: #bee3fa;
+  --color-wii-blue-400: #6ec1ef;
+  --color-wii-blue-600: #2e8bc9;
+  --color-wii-blue-800: #175a8c;
+
+  --color-menu-bg: #f6f7f9;
+  --color-menu-bg-stripe: #eceef1;
+
+  /* Wii UI label blue, sampled from the "Wii Menu" button reference. */
+  --color-wii-label: #82c4e8;
+  --color-wii-label-deep: #5fa8d4;
+
+  --color-tile-white: #fdfeff;
+  --color-tile-border: #e3e6ea;
+  --color-tile-gray: #c9ced3;
+  --color-tile-gray-shadow: #b7bcc2;
+  --color-cursor-badge: #1a73e8;
+
+  --color-gdg-blue: #4285f4;
+  --color-gdg-red: #ea4335;
+  --color-gdg-yellow: #fbbc05;
+  --color-gdg-green: #34a853;
+
+  --animate-pulse-slow: pulse-slow 2.4s ease-in-out infinite;
+  --animate-wave-drift: wave-drift 18s linear infinite;
+
+  @keyframes pulse-slow {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.25;
+    }
+  }
+
+  @keyframes wave-drift {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Native cursor is hidden only once the custom Wii pointer has confirmed a fine-pointer
+   (non-touch) device, avoiding a cursor-less flash on touch devices during initial load. */
+html.wii-cursor-active,
+html.wii-cursor-active * {
+  cursor: none !important;
+}
+
+/* The Wii Menu background is fine HORIZONTAL scanlines — sampled from the
+   reference at a ~3px period alternating #f9f9f9 hairlines over #e0e0e0. */
+.wii-menu-texture {
+  background-color: #e0e0e0;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    #f9f9f9 0px,
+    #f9f9f9 1px,
+    #e0e0e0 1px,
+    #e0e0e0 3px
+  );
+}
