@@ -9,7 +9,7 @@ import type { Channel } from '../../types/content'
 
 const MotionLink = motion.create(Link)
 
-const APPLY_GRADIENT =
+const REGISTER_GRADIENT =
   'linear-gradient(135deg, #4285F4 0%, #EA4335 33%, #FBBC05 66%, #34A853 100%)'
 
 /** Corner radius measured at ~7.7% of tile width on the reference. */
@@ -50,15 +50,22 @@ export function ChannelTile({ channel }: ChannelTileProps) {
   }
 
   const tileFill =
-    channel.id === 'apply'
-      ? APPLY_GRADIENT
+    channel.id === 'register'
+      ? REGISTER_GRADIENT
       : channel.accent
         ? `linear-gradient(135deg, ${gdgAccentGradient[channel.accent][0]} 0%, ${gdgAccentGradient[channel.accent][1]} 100%)`
         : undefined
 
+  // External channels (e.g. the Register Google Form) open in a new tab so
+  // the Wii menu stays put behind them.
+  const TileLink = channel.external ? motion.a : MotionLink
+  const linkProps = channel.external
+    ? { href: channel.route, target: '_blank', rel: 'noopener noreferrer' }
+    : { to: channel.route }
+
   return (
-    <MotionLink
-      to={channel.route}
+    <TileLink
+      {...linkProps}
       variants={tilePopVariants}
       initial="rest"
       whileHover="hover"
@@ -103,6 +110,6 @@ export function ChannelTile({ channel }: ChannelTileProps) {
           {channel.label}
         </span>
       )}
-    </MotionLink>
+    </TileLink>
   )
 }

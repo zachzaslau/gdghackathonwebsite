@@ -8,32 +8,6 @@ export const tilePopVariants: Variants = {
   tap: { scale: 0.96, transition: { type: 'spring', stiffness: 600, damping: 22 } },
 }
 
-export const orbContainerVariants: Variants = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.14, delayChildren: 0.1 },
-  },
-}
-
-export const orbVariants: Variants = {
-  hidden: { opacity: 0, y: 40, scale: 0.4 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { type: 'spring', stiffness: 260, damping: 14 },
-  },
-}
-
-export const wordmarkVariants: Variants = {
-  hidden: { opacity: 0, scale: 0.7 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    transition: { type: 'spring', stiffness: 200, damping: 16, delay: 0.7 },
-  },
-}
-
 export const fadeVariants: Variants = {
   initial: { opacity: 0 },
   animate: { opacity: 1, transition: { duration: 0.28, ease: 'easeOut' } },

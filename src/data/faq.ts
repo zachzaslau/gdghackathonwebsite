@@ -13,7 +13,7 @@ export const faqItems: FaqItem[] = [
     category: 'General',
     question: 'Who can attend?',
     answer:
-      'Any current student is welcome, regardless of major or experience level. Beginners are encouraged to apply — mentors will be on-site all weekend.',
+      'Any current student is welcome, regardless of major or experience level. Beginners are encouraged to register — mentors will be on-site all weekend.',
   },
   {
     id: 'cost',

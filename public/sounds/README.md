@@ -8,7 +8,7 @@ pick up the new sound with zero code changes.
 | File | Trigger point | Status |
 |---|---|---|
 | `wii-click.mp3` | "Press A" on the warning screen, **and** opening a channel tile | real |
-| `wii-menu-music.mp3` | Plays once from the top each time the home menu is entered (3 min, does not loop) | real |
+| `wii-menu-music.mp3` | Plays once from the top each time the home menu is entered (~3 min, fades out over its last 5s, does not loop) | real |
 | `hover-bloop.wav` | Pointer enters a channel tile (<0.3s) | **silent stub — replace** |
 
 Cue-to-file mapping lives in `src/lib/soundManager.ts`. Two cues may share one

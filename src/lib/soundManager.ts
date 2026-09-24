@@ -22,6 +22,38 @@ const srcFor = (key: SoundKey) => [`/sounds/${files[key]}`]
 
 const AMBIENT_VOLUME = 0.5
 
+/** The menu music fades to silence over this last stretch of the track. */
+const AMBIENT_END_FADE_MS = 5000
+
+/**
+ * Timer that starts the end-of-track fade. Re-armed from the current position
+ * every time playback starts or resumes, and dropped on pause/stop/end, so a
+ * tab-out pause or leaving the menu can't leave it firing at the wrong moment.
+ */
+let ambientEndFadeTimer: number | null = null
+
+function cancelAmbientEndFade() {
+  if (ambientEndFadeTimer !== null) {
+    window.clearTimeout(ambientEndFadeTimer)
+    ambientEndFadeTimer = null
+  }
+}
+
+function remainingMs(howl: Howl) {
+  return Math.max(0, (howl.duration() - (howl.seek() as number)) * 1000)
+}
+
+function scheduleAmbientEndFade() {
+  cancelAmbientEndFade()
+  const ambient = getHowls().ambient
+  ambientEndFadeTimer = window.setTimeout(() => {
+    ambientEndFadeTimer = null
+    // Fade over whatever is actually left, which is less than the full window
+    // when playback resumed partway through it.
+    ambient.fade(ambient.volume(), 0, Math.min(AMBIENT_END_FADE_MS, remainingMs(ambient)))
+  }, Math.max(0, remainingMs(ambient) - AMBIENT_END_FADE_MS))
+}
+
 let howls: Record<SoundKey, Howl> | null = null
 
 function getHowls(): Record<SoundKey, Howl> {
@@ -38,10 +70,14 @@ function getHowls(): Record<SoundKey, Howl> {
       ambient: new Howl({
         src: srcFor('ambient'),
         // Deliberately not looping: the track plays once from the top each
-        // time the home menu is entered, then stays silent until the user
-        // comes back to it.
+        // time the home menu is entered, fades out over its last few seconds,
+        // then stays silent until the user comes back to it.
         loop: false,
         volume: AMBIENT_VOLUME,
+        onplay: scheduleAmbientEndFade,
+        onpause: cancelAmbientEndFade,
+        onstop: cancelAmbientEndFade,
+        onend: cancelAmbientEndFade,
         onloaderror: (_id, err) =>
           console.warn(`[sound] menu music failed to load (${files.ambient}):`, err),
         onplayerror: (_id, err) =>
@@ -67,6 +103,40 @@ function cancelPendingAmbientStop() {
   }
 }
 
+/**
+ * Set only when the music was paused because the tab went hidden, so coming
+ * back resumes it — and only it. Music that had already ended, been stopped
+ * by leaving the menu, or never started stays silent on return.
+ */
+let ambientPausedForHidden = false
+
+/**
+ * Listener waiting for the audio context to unlock so the menu music can
+ * start, kept so a stop (or a StrictMode remount) can cancel it.
+ */
+let pendingAmbientStart: (() => void) | null = null
+
+function cancelPendingAmbientStart() {
+  if (pendingAmbientStart) {
+    Howler.ctx?.removeEventListener('statechange', pendingAmbientStart)
+    pendingAmbientStart = null
+  }
+}
+
+function beginAmbient() {
+  const ambient = getHowls().ambient
+  // Volume is always set outright rather than faded up. A fade-in is driven
+  // by a timer that can stall (background tab, throttling) or be cut short
+  // by a pending fade-out, and the failure mode is the worst one available:
+  // the track plays at volume 0 and seems not to work at all.
+  ambient.volume(AMBIENT_VOLUME)
+  if (ambient.playing()) return
+  // stop() rewinds to 0, so entering the menu always begins the track
+  // rather than resuming part-way through from a previous visit.
+  ambient.stop()
+  ambient.play()
+}
+
 export const soundManager = {
   /**
    * Construct the Howls (and so begin fetching + decoding) ahead of first use.
@@ -80,43 +150,58 @@ export const soundManager = {
   play(key: SoundKey) {
     getHowls()[key].play()
   },
+  /**
+   * Play only if the browser allows audio right now. A plain play() while
+   * autoplay is locked isn't dropped: Howler queues it until the context
+   * unlocks, so it would fire late, on the user's next click. For a sound
+   * that isn't tied to a gesture, playing late is worse than not playing.
+   */
+  playIfUnlocked(key: SoundKey) {
+    const howl = getHowls()[key]
+    if (Howler.ctx?.state === 'running') howl.play()
+  },
   /** True once the menu music is decoded and ready to play instantly. */
   isAmbientReady() {
     return getHowls().ambient.state() === 'loaded'
   },
   startAmbient() {
-    const ambient = getHowls().ambient
+    getHowls()
     cancelPendingAmbientStop()
-    // Volume is always set outright rather than faded up. A fade-in is driven
-    // by a timer that can stall (background tab, throttling) or be cut short
-    // by a pending fade-out, and the failure mode is the worst one available:
-    // the track plays at volume 0 and seems not to work at all.
-    ambient.volume(AMBIENT_VOLUME)
-    if (ambient.playing()) return
-    // stop() rewinds to 0, so entering the menu always begins the track
-    // rather than resuming part-way through from a previous visit.
-    ambient.stop()
-    ambient.play()
+    cancelPendingAmbientStart()
+    ambientPausedForHidden = false
 
-    // If the browser's autoplay lock hasn't lifted yet, the play() above is a
-    // silent no-op and nothing would ever retry — the music would simply never
-    // start. Resume the context and play again as soon as it unlocks.
     const ctx = Howler.ctx
-    if (ctx && ctx.state !== 'running') {
-      const onRunning = () => {
-        if (ctx.state !== 'running') return
-        ctx.removeEventListener('statechange', onRunning)
-        if (!ambient.playing()) {
-          ambient.volume(AMBIENT_VOLUME)
-          ambient.play()
-        }
-      }
-      ctx.addEventListener('statechange', onRunning)
-      void ctx.resume()
+    if (!ctx || ctx.state === 'running') {
+      beginAmbient()
+      return
     }
+
+    // The context is still locked. No Howler call may be made in this state:
+    // Howler queues calls made while locked and replays them after unlocking,
+    // so a stop() from a StrictMode remount (or the rewind in beginAmbient)
+    // would run right after the track starts and silence it for good.
+    //
+    // Only wait for the unlock when the visitor has already interacted — i.e.
+    // they pressed A, whose unlock is still resolving. After the no-click
+    // auto-advance the menu stays silent rather than springing into music on
+    // some later click.
+    if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return
+
+    const onRunning = () => {
+      if (ctx.state !== 'running') return
+      cancelPendingAmbientStart()
+      beginAmbient()
+    }
+    pendingAmbientStart = onRunning
+    ctx.addEventListener('statechange', onRunning)
+    // Also covers Howler's own 30s idle auto-suspend, which nothing else
+    // would undo before the next play.
+    void ctx.resume()
   },
   stopAmbient(fadeMs = 400) {
     const ambient = getHowls().ambient
+    cancelPendingAmbientStart()
+    ambientPausedForHidden = false
     if (!ambient.playing()) return
     cancelPendingAmbientStop()
     ambient.fade(ambient.volume(), 0, fadeMs)
@@ -124,6 +209,21 @@ export const soundManager = {
       ambient.stop()
       ambientStopTimer = null
     }, fadeMs)
+  },
+  /** Pause the menu music while the tab is hidden, keeping its position. */
+  pauseAmbientForHidden() {
+    const ambient = getHowls().ambient
+    // Mid fade-out means the user has already left the menu: let the stop
+    // finish rather than pausing, or returning would resume it on another page.
+    if (!ambient.playing() || ambientStopTimer !== null) return
+    ambient.pause()
+    ambientPausedForHidden = true
+  },
+  /** Pick the menu music back up where it was, if the tab hiding paused it. */
+  resumeAmbientAfterHidden() {
+    if (!ambientPausedForHidden) return
+    ambientPausedForHidden = false
+    getHowls().ambient.play()
   },
   setMuted(muted: boolean) {
     Object.values(getHowls()).forEach((howl) => howl.mute(muted))

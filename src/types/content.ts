@@ -3,7 +3,10 @@ export type GdgAccent = 'blue' | 'red' | 'yellow' | 'green'
 export interface Channel {
   id: string
   label: string
+  /** In-app path, or a full URL when `external` is set. */
   route: string
+  /** Opens `route` in a new tab instead of navigating within the site. */
+  external?: boolean
   filled: boolean
   accent?: GdgAccent
   /**

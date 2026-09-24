@@ -1,5 +1,15 @@
 import { useCallback, useState } from 'react'
 
+/**
+ * The warning screen auto-advances this long after the page starts loading.
+ * Measured against performance.now() — milliseconds since navigation start,
+ * so a refresh resets it — rather than from when the screen mounts, which
+ * would add however long the bundle took to download and run.
+ */
+export const BOOT_WINDOW_MS = 3000
+
+export const bootWindowRemaining = () => Math.max(0, BOOT_WINDOW_MS - performance.now())
+
 // Module-scoped, not sessionStorage: this resets to false on a hard refresh
 // (the whole module graph re-executes) but stays true across client-side
 // route navigation for the lifetime of the loaded page — including when
@@ -7,7 +17,12 @@ import { useCallback, useState } from 'react'
 let hasBootedGlobal = false
 
 export function useBootState() {
-  const [hasBooted, setHasBooted] = useState(hasBootedGlobal)
+  // Also treat the boot as done once the window has passed, so landing on
+  // another page first and reaching the home menu later doesn't flash the
+  // warning screen for a single frame before it auto-advances.
+  const [hasBooted, setHasBooted] = useState(
+    () => hasBootedGlobal || bootWindowRemaining() === 0,
+  )
 
   const completeBoot = useCallback(() => {
     hasBootedGlobal = true

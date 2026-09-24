@@ -48,10 +48,14 @@ export function BottomBar() {
         {hoverLabel}
       </p>
 
-      {/* Date — below the wave line, on the bar itself (~5.3% of height) */}
+      {/* Event date — below the wave line, where the Wii shows today's date.
+          Larger and bolder than the reference's date line, in a deeper blue,
+          so it reads as the headline fact, with the Wii's pressed-in white
+          highlight under the lettering. */}
       <p
-        className="font-heading text-wii-label absolute w-full text-center leading-none font-medium"
-        style={{ top: '63%', fontSize: 'min(4.4dvh, 3.4vw)' }}
+        className="font-heading text-wii-blue-600 absolute w-full text-center leading-none font-extrabold
+          top-[60%] text-[min(5dvh,3.3vw)] [text-shadow:0_1px_0_rgba(255,255,255,0.85)]
+          max-sm:top-[70%] max-sm:text-[5.2vw]"
       >
         {siteConfig.hackathonDate}
       </p>

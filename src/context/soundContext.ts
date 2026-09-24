@@ -5,6 +5,7 @@ export interface SoundContextValue {
   muted: boolean
   toggleMute: () => void
   playSound: (key: SoundKey) => void
+  playSoundIfUnlocked: (key: SoundKey) => void
   startAmbient: () => void
   stopAmbient: () => void
 }

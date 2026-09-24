@@ -1,10 +1,10 @@
 # GDG Hackathon @ UF
 
 Website for the Google Developer Group at UF hackathon, built as a tribute to the
-Nintendo Wii system menu: a boot warning screen, a startup animation, and a 4x3
+Nintendo Wii system menu: a boot warning screen and a 4x3
 grid of "channels" that serve as the site's navigation.
 
-**Event date: October 24th**
+**Event date: October 24, 2026**
 
 ## Running it
 
@@ -25,7 +25,7 @@ animation, and Howler.js for audio.
 ```
 src/
 ├── components/
-│   ├── boot/         warning screen + startup animation
+│   ├── boot/         warning screen
 │   ├── home-menu/    the Wii-style channel grid and bottom bar
 │   ├── cursor/       the pointer that replaces the OS cursor
 │   ├── content/      per-page pieces (track cards, FAQ, team, sponsors…)

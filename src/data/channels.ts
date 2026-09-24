@@ -1,4 +1,5 @@
 import type { Channel } from '../types/content'
+import { siteConfig } from './siteConfig'
 
 /**
  * The home menu is a 4x3 grid of 12 channel slots, matching the real Wii Menu
@@ -6,12 +7,13 @@ import type { Channel } from '../types/content'
  */
 export const channels: Channel[] = [
   {
-    id: 'apply',
-    label: 'Apply',
-    route: '/apply',
+    id: 'register',
+    label: 'Register',
+    route: siteConfig.registerUrl,
+    external: true,
     filled: true,
     accent: 'blue',
-    image: '/channels/apply.png',
+    image: '/channels/register.png',
   },
   { id: 'tracks', label: 'Tracks', route: '/tracks', filled: true, accent: 'green' },
   { id: 'sponsors', label: 'Sponsors', route: '/sponsors', filled: true, accent: 'yellow' },
