@@ -1,11 +1,10 @@
 import type { Variants } from 'framer-motion'
 
-// The Wii "inflates" a channel on hover: a single springy overshoot, roughly
-// 1.06-1.10 scale settling in ~200ms, and a faster ~140ms release.
+// Channels hold their size on hover (the blue highlight outline marks them
+// instead); only a brief press-in on tap.
 export const tilePopVariants: Variants = {
   rest: { scale: 1, transition: { duration: 0.14, ease: 'easeOut' } },
-  hover: { scale: 1.08, transition: { type: 'spring', stiffness: 420, damping: 14, mass: 0.7 } },
-  tap: { scale: 0.96, transition: { type: 'spring', stiffness: 600, damping: 22 } },
+  tap: { scale: 0.97, transition: { type: 'spring', stiffness: 600, damping: 22 } },
 }
 
 export const fadeVariants: Variants = {

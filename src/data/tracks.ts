@@ -2,35 +2,35 @@ import type { Track } from '../types/content'
 
 export const tracks: Track[] = [
   {
-    id: 'web-cloud',
-    title: 'Web & Cloud',
-    tagline: 'Build and ship on the open web',
+    id: 'entertainment',
+    title: 'Entertainment',
+    tagline: 'Make something people want to play with',
     description:
-      'Projects that live on the web or in the cloud — full-stack apps, browser extensions, APIs, and anything deployed with modern cloud tooling. Bonus points for creative use of Google Cloud or Firebase.',
-    accent: 'blue',
-  },
-  {
-    id: 'ai-ml',
-    title: 'AI / ML',
-    tagline: 'Teach a machine something new',
-    description:
-      'Projects that use machine learning or generative AI in a meaningful way — not just an API call bolted on. Show us a real problem an ML model helps solve.',
-    accent: 'red',
-  },
-  {
-    id: 'mobile-cross-platform',
-    title: 'Mobile & Cross-Platform',
-    tagline: 'Pocket-sized, powerful',
-    description:
-      'Native or cross-platform apps built for iOS, Android, or both at once — Flutter, React Native, Kotlin, Swift, whatever gets it into someone\'s pocket.',
+      'Games, music, video, social, and interactive experiences — anything built to delight, surprise, or bring people together. Show us something we can\'t stop playing.',
     accent: 'yellow',
   },
   {
-    id: 'open-innovation',
-    title: 'Open Innovation',
-    tagline: 'Anything goes',
+    id: 'education',
+    title: 'Education',
+    tagline: 'Help someone learn something new',
     description:
-      'Got an idea that doesn\'t fit neatly into the other tracks? This one is for hardware hacks, games, tools for good, and everything in between.',
+      'Tools that make learning more accessible, engaging, or effective — for students, teachers, or lifelong learners. Study aids, tutoring, accessibility, and new ways to explore ideas all fit here.',
+    accent: 'blue',
+  },
+  {
+    id: 'sustainability',
+    title: 'Sustainability',
+    tagline: 'Build for a healthier planet',
+    description:
+      'Projects that tackle climate, energy, waste, transportation, food, or conservation. Whether it nudges everyday habits or crunches environmental data, show us how it makes a real difference.',
     accent: 'green',
+  },
+  {
+    id: 'healthcare',
+    title: 'Healthcare',
+    tagline: 'Hack for better health',
+    description:
+      'Projects that improve physical or mental health, patient care, or access to medical resources — from wellness apps to tools for clinicians and caregivers.',
+    accent: 'red',
   },
 ]

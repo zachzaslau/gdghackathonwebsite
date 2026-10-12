@@ -1,6 +1,6 @@
 import { Howl, Howler } from 'howler'
 
-export type SoundKey = 'startup' | 'hover' | 'click' | 'ambient'
+export type SoundKey = 'startup' | 'click' | 'ambient'
 
 /**
  * Exact file per cue, extension included. Howler's multi-source `src` array
@@ -13,7 +13,6 @@ export type SoundKey = 'startup' | 'hover' | 'click' | 'ambient'
  */
 const files: Record<SoundKey, string> = {
   startup: 'wii-click.mp3',
-  hover: 'hover-bloop.wav', // silent placeholder
   click: 'wii-click.mp3',
   ambient: 'wii-menu-music.mp3',
 }
@@ -60,7 +59,6 @@ function getHowls(): Record<SoundKey, Howl> {
   if (!howls) {
     howls = {
       startup: new Howl({ src: srcFor('startup') }),
-      hover: new Howl({ src: srcFor('hover') }),
       click: new Howl({ src: srcFor('click') }),
       // Web Audio (html5 left off) on purpose. An <audio>-element stream is
       // lighter on memory, but it is also subject to a separate autoplay gate
@@ -145,6 +143,11 @@ export const soundManager = {
    * begin until "press A", and the track would arrive seconds after the menu.
    */
   preload() {
+    // iOS plays Web Audio through the ringer channel by default, so a phone on
+    // silent hears nothing. Declaring this a media-playback session (Safari
+    // 16.4+) routes it like a video instead. Not in the DOM typings yet.
+    const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession
+    if (session) session.type = 'playback'
     getHowls()
   },
   play(key: SoundKey) {

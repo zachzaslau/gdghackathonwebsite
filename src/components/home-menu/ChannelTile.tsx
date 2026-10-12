@@ -40,7 +40,6 @@ export function ChannelTile({ channel }: ChannelTileProps) {
   }
 
   const handleEnter = () => {
-    playSound('hover')
     setHoverLabel(channel.label)
   }
 
@@ -68,7 +67,6 @@ export function ChannelTile({ channel }: ChannelTileProps) {
       {...linkProps}
       variants={tilePopVariants}
       initial="rest"
-      whileHover="hover"
       whileTap="tap"
       onMouseEnter={handleEnter}
       onFocus={handleEnter}
@@ -77,9 +75,8 @@ export function ChannelTile({ channel }: ChannelTileProps) {
       onClick={handleActivate}
       aria-label={channel.label}
       style={{ backgroundImage: tileFill, borderRadius: RADIUS }}
-      className="group relative flex items-center justify-center overflow-hidden
-        text-center shadow-[0_1px_3px_rgba(0,0,0,0.18)] ring-1 ring-white/70 ring-inset
-        focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white"
+      className="wii-channel-highlight group relative flex items-center justify-center
+        overflow-hidden text-center ring-1 ring-white/70 ring-inset focus-visible:outline-none"
     >
       {channel.image && artState !== 'failed' && (
         <img

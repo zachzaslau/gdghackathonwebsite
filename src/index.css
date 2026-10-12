@@ -84,3 +84,36 @@ html.wii-cursor-active * {
     #e0e0e0 3px
   );
 }
+
+/* Hovered/focused channel: the Wii's bright cyan outline with a soft glow
+   that breathes gently, in place of growing the tile. Drawn as box-shadow so
+   it sits just outside the tile's rounded edge and isn't clipped by its
+   overflow-hidden. */
+.wii-channel-highlight {
+  --wii-highlight: #34c3f4;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  transition: box-shadow 120ms ease-out;
+}
+
+.wii-channel-highlight:hover,
+.wii-channel-highlight:focus-visible {
+  box-shadow:
+    0 0 0 3px var(--wii-highlight),
+    0 0 10px 3px rgba(52, 195, 244, 0.55);
+  animation: wii-highlight-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes wii-highlight-pulse {
+  50% {
+    box-shadow:
+      0 0 0 3px var(--wii-highlight),
+      0 0 16px 5px rgba(52, 195, 244, 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wii-channel-highlight:hover,
+  .wii-channel-highlight:focus-visible {
+    animation: none;
+  }
+}

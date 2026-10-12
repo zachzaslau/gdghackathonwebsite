@@ -25,8 +25,11 @@ export function BootWarningScreen({ onAdvance }: BootWarningScreenProps) {
       initial="initial"
       animate="animate"
       exit="exit"
+      // Click only — no onTouchStart. A tap's touchstart is not a user
+      // activation, so advancing on it opens the menu before the browser has
+      // unlocked audio, and the menu music gives up. The click a tap produces
+      // arrives after touchend, which is an activation.
       onClick={onAdvance}
-      onTouchStart={onAdvance}
       className="fixed inset-0 z-50 flex cursor-pointer items-center bg-black px-8 text-white select-none sm:px-[15%]"
     >
       <div className="max-w-md">
