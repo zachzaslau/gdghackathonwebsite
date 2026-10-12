@@ -117,3 +117,26 @@ html.wii-cursor-active * {
     animation: none;
   }
 }
+
+/* Home menu channel grid. It takes the largest size that fits its slot
+   (83.83% of the width, 63.9% of the height) at a fixed aspect, so every tile
+   keeps the ~1.845:1 banner shape of the channel art. Sizing from only one
+   axis stretched the tiles tall on narrow screens and cropped the art. */
+.channel-grid {
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  aspect-ratio: 2.409;
+  width: min(83.83vw, 63.9dvh * 2.409);
+  gap: 2.5% 1%;
+}
+
+/* Portrait (phones): 2 columns x 3 rows of the six real channels — the blank
+   slots hide themselves. Same tile shape: (2 x 1.845 + gap) / (3 + 2 gaps). */
+@media (orientation: portrait) {
+  .channel-grid {
+    grid-template-columns: repeat(2, 1fr);
+    aspect-ratio: 1.164;
+    width: min(88vw, 63.9dvh * 1.164);
+    gap: 3.7% 2.1%;
+  }
+}

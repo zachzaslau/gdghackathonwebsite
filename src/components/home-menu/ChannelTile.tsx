@@ -34,7 +34,7 @@ export function ChannelTile({ channel }: ChannelTileProps) {
         aria-hidden="true"
         onMouseEnter={resetHoverLabel}
         style={{ borderRadius: RADIUS }}
-        className="bg-[#c9ccd0] shadow-[inset_0_1px_3px_rgba(0,0,0,0.13)]"
+        className="bg-[#c9ccd0] shadow-[inset_0_1px_3px_rgba(0,0,0,0.13)] portrait:hidden"
       />
     )
   }
@@ -74,7 +74,8 @@ export function ChannelTile({ channel }: ChannelTileProps) {
       onBlur={resetHoverLabel}
       onClick={handleActivate}
       aria-label={channel.label}
-      style={{ backgroundImage: tileFill, borderRadius: RADIUS }}
+      // inline-size container so the label can size itself off the tile (cqw)
+      style={{ backgroundImage: tileFill, borderRadius: RADIUS, containerType: 'inline-size' }}
       className="wii-channel-highlight group relative flex items-center justify-center
         overflow-hidden text-center ring-1 ring-white/70 ring-inset focus-visible:outline-none"
     >
@@ -96,13 +97,15 @@ export function ChannelTile({ channel }: ChannelTileProps) {
       />
 
       {/* Reference channel labels ("Forecast Channel") measure ~4% of screen
-          height at a light weight — not heavy or shadowed. Art-backed tiles
-          carry their own wordmark, so the text label is omitted there. */}
+          height (~11.5% of tile width) at a light weight — not heavy or
+          shadowed. Sized off the tile so it holds in the 2-column phone
+          grid. Art-backed tiles carry their own wordmark, so the text label
+          is omitted there. */}
       {!artLoaded && (
         <span
           className="font-heading relative px-2 font-medium text-white
             [text-shadow:0_1px_2px_rgba(0,0,0,0.25)]"
-          style={{ fontSize: 'min(4dvh, 3vw)' }}
+          style={{ fontSize: '11.5cqw' }}
         >
           {channel.label}
         </span>

@@ -7,13 +7,13 @@ import { ChannelTile } from './ChannelTile'
  * ~5.5px row gaps, which lands each tile at 129x70 — the banner proportion as
  * it appears in the reference. Sizing by height and capping by width keeps
  * those proportions at any viewport shape.
+ *
+ * Sizing lives in `.channel-grid` (index.css), which also switches portrait
+ * screens to 2 columns of just the six real channels.
  */
 export function ChannelGrid() {
   return (
-    <div
-      className="grid h-full grid-cols-4 grid-rows-3"
-      style={{ aspectRatio: '2.409', maxWidth: '83.83%', gap: '2.5% 1%' }}
-    >
+    <div className="channel-grid grid">
       {channels.map((channel) => (
         <ChannelTile key={channel.id} channel={channel} />
       ))}
