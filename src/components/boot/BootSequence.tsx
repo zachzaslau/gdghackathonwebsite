@@ -22,7 +22,7 @@ export function BootSequence({ onBootComplete }: BootSequenceProps) {
   // gesture behind it, the chime plays only where the browser already allows
   // audio (e.g. Chrome once the visitor has already interacted with the site);
   // a fresh first visit in most browsers stays silent here. The menu
-  // music still starts — startAmbient() retries once the audio context
+  // music still starts — startMusic('ambient') retries once the audio context
   // unlocks on the user's first click or keypress in the menu.
   useEffect(() => {
     const timer = window.setTimeout(() => {

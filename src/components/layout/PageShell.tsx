@@ -2,6 +2,7 @@ import { Home } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useSound } from '../../hooks/useSound'
+import { MuteButton } from './MuteButton'
 
 interface PageShellProps {
   title: string
@@ -23,7 +24,7 @@ export function PageShell({ title, subtitle, children }: PageShellProps) {
         }}
       />
 
-      <div className="mx-auto max-w-4xl px-6 py-10 sm:py-14">
+      <div className="mx-auto max-w-4xl px-6 pt-10 pb-24 sm:pt-14">
         <Link
           to="/"
           onClick={() => playSound('click')}
@@ -45,6 +46,8 @@ export function PageShell({ title, subtitle, children }: PageShellProps) {
 
         <div className="mt-8 sm:mt-10">{children}</div>
       </div>
+
+      <MuteButton />
     </div>
   )
 }

@@ -23,6 +23,8 @@ export interface Track {
   tagline: string
   description: string
   accent: GdgAccent
+  /** Preview art for the Tracks menu screen, as a path under /public. */
+  image?: string
 }
 
 export interface Sponsor {
@@ -49,7 +51,12 @@ export interface TeamMember {
   name: string
   role: string
   department: TeamDepartment
-  miiColor: string
+  /** Their custom Mii: a transparent PNG under /public, e.g. '/team/alex.png'. */
+  mii: string
+  /** Profile photo for their card (square works best); the Mii is shown if absent. */
+  photo?: string
+  bio?: string
+  links?: { label: string; url: string }[]
 }
 
 export type FaqCategory =

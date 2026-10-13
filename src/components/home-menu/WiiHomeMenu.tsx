@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion'
-import { useEffect } from 'react'
-import { useSound } from '../../hooks/useSound'
+import { usePageMusic } from '../../hooks/usePageMusic'
 import { fadeVariants } from '../../lib/motionVariants'
 import { BottomBar } from './BottomBar'
 import { ChannelGrid } from './ChannelGrid'
@@ -12,12 +11,7 @@ import { ChannelGrid } from './ChannelGrid'
  * and never scrolls, the way a console UI occupies a TV picture.
  */
 export function WiiHomeMenu() {
-  const { startAmbient, stopAmbient } = useSound()
-
-  useEffect(() => {
-    startAmbient()
-    return () => stopAmbient()
-  }, [startAmbient, stopAmbient])
+  usePageMusic('ambient')
 
   return (
     <motion.div

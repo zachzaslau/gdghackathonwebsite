@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { soundManager, type SoundKey } from '../lib/soundManager'
+import { soundManager, type MusicKey, type SoundKey } from '../lib/soundManager'
 import { SoundContext } from './soundContext'
 
 /**
@@ -29,8 +29,8 @@ function saveMuted(muted: boolean) {
 export function SoundProvider({ children }: { children: ReactNode }) {
   const [muted, setMuted] = useState(readSavedMuted)
   // The callbacks below read mute state through this ref so their identities
-  // never change. If they depended on `muted`, toggling it would hand the home
-  // menu a "new" startAmbient/stopAmbient, re-running its effect: the music
+  // never change. If they depended on `muted`, toggling it would hand the
+  // pages a "new" startMusic/stopMusic, re-running their effects: the music
   // would be stopped on mute and restarted from the top on unmute, with a
   // visible hitch while all of that ran on the click.
   const mutedRef = useRef(muted)
@@ -44,13 +44,13 @@ export function SoundProvider({ children }: { children: ReactNode }) {
     soundManager.setMuted(mutedRef.current)
   }, [])
 
-  // Pause the menu music while the user is tabbed out (another tab, a
-  // minimized window, or the Register form opening in a new tab), and resume
-  // it from the same spot when they come back.
+  // Pause page music while the user is tabbed out (another tab, a minimized
+  // window, or the Register form opening in a new tab), and resume it from
+  // the same spot when they come back.
   useEffect(() => {
     const handleVisibility = () => {
-      if (document.hidden) soundManager.pauseAmbientForHidden()
-      else soundManager.resumeAmbientAfterHidden()
+      if (document.hidden) soundManager.pauseMusicForHidden()
+      else soundManager.resumeMusicAfterHidden()
     }
     document.addEventListener('visibilitychange', handleVisibility)
     return () => document.removeEventListener('visibilitychange', handleVisibility)
@@ -64,14 +64,14 @@ export function SoundProvider({ children }: { children: ReactNode }) {
     if (!mutedRef.current) soundManager.playIfUnlocked(key)
   }, [])
 
-  // Started even while muted: the Howls themselves are muted, so it plays
-  // silently and unmuting simply brings it in at the right spot.
-  const startAmbient = useCallback(() => {
-    soundManager.startAmbient()
+  // Safe to call while muted: the music waits, and starts from the top when
+  // sound is switched back on.
+  const startMusic = useCallback((key: MusicKey) => {
+    soundManager.startMusic(key)
   }, [])
 
-  const stopAmbient = useCallback(() => {
-    soundManager.stopAmbient()
+  const stopMusic = useCallback((key: MusicKey) => {
+    soundManager.stopMusic(key)
   }, [])
 
   const toggleMute = useCallback(() => {
@@ -84,8 +84,22 @@ export function SoundProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ muted, toggleMute, playSound, playSoundIfUnlocked, startAmbient, stopAmbient }),
-    [muted, toggleMute, playSound, playSoundIfUnlocked, startAmbient, stopAmbient],
+    () => ({
+      muted,
+      toggleMute,
+      playSound,
+      playSoundIfUnlocked,
+      startMusic,
+      stopMusic,
+    }),
+    [
+      muted,
+      toggleMute,
+      playSound,
+      playSoundIfUnlocked,
+      startMusic,
+      stopMusic,
+    ],
   )
 
   return <SoundContext.Provider value={value}>{children}</SoundContext.Provider>

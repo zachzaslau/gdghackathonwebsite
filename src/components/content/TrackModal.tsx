@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { X } from 'lucide-react'
-import { gdgAccentBgClass } from '../../styles/theme'
+import { useEffect, useRef } from 'react'
+import { useSound } from '../../hooks/useSound'
 import type { Track } from '../../types/content'
 
 interface TrackModalProps {
@@ -8,7 +8,32 @@ interface TrackModalProps {
   onClose: () => void
 }
 
+/**
+ * A track's full description, as a Wii Sports dialog: the text on a light
+ * screen inside the same grey bezel as the menu's preview frame, with a Wii
+ * "Back" button under it. Styles live in wiiSportsMenu.css (the `ws-dialog`
+ * classes) alongside the menu it opens from.
+ */
 export function TrackModal({ track, onClose }: TrackModalProps) {
+  const { playSound } = useSound()
+  const backRef = useRef<HTMLButtonElement>(null)
+
+  const close = () => {
+    playSound('click')
+    onClose()
+  }
+
+  // Focus Back on open, so Enter/Space dismisses it, and close on Escape.
+  useEffect(() => {
+    if (!track) return
+    backRef.current?.focus({ preventScroll: true })
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [track, onClose])
+
   return (
     <AnimatePresence>
       {track && (
@@ -16,33 +41,43 @@ export function TrackModal({ track, onClose }: TrackModalProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4"
+          transition={{ duration: 0.15 }}
+          onClick={close}
+          className="ws-dialog-backdrop"
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ws-dialog-title"
+            aria-describedby="ws-dialog-description"
+            initial={{ opacity: 0, scale: 0.82 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 24 }}
             onClick={(event) => event.stopPropagation()}
-            className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+            className="ws-dialog"
           >
-            <span
-              className={`absolute inset-x-0 top-0 h-1.5 rounded-t-2xl ${gdgAccentBgClass[track.accent]}`}
-            />
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
-            >
-              <X size={20} />
+            <div className="ws-dialog-bezel">
+              <div className="ws-dialog-screen">
+                <h2 id="ws-dialog-title" className="ws-dialog-title">
+                  {track.title}
+                </h2>
+                <p className="ws-dialog-tagline">{track.tagline}</p>
+                <p id="ws-dialog-description" className="ws-dialog-description">
+                  {track.description}
+                </p>
+              </div>
+            </div>
+
+            <button ref={backRef} type="button" onClick={close} className="ws-button ws-dialog-back">
+              <span>Back</span>
+              <span aria-hidden="true" className="ws-brackets">
+                <i />
+                <i />
+                <i />
+                <i />
+              </span>
             </button>
-            <h3 className="font-heading mt-2 text-2xl font-bold text-wii-blue-800">
-              {track.title}
-            </h3>
-            <p className="mt-1 text-sm font-semibold text-wii-blue-600">{track.tagline}</p>
-            <p className="mt-4 text-sm leading-relaxed text-slate-600">{track.description}</p>
           </motion.div>
         </motion.div>
       )}

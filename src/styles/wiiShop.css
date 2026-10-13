@@ -1,0 +1,131 @@
+/*
+ * Sponsors page: styled after a Wii Shop Channel title list.
+ *
+ * `--u` is one pixel of a 2000px-wide capture of the real screen, where the
+ * content column runs 1510px wide; every size below reads off that capture.
+ * Landscape scales the column to fit both the window's width and height;
+ * portrait (phones) drops to one column re-based on the viewport width.
+ */
+
+.shop-page {
+  display: flex;
+  min-height: 100dvh;
+  justify-content: center;
+  overflow-x: clip;
+  background: linear-gradient(180deg, #fff 85%, #f8f8f8 100%);
+  color: #333;
+  font-family: var(--font-heading);
+}
+
+.shop-stage {
+  --u: min(calc((100vw - 32px) / 1510), calc(100dvh / 1330), 0.9px);
+  display: flex;
+  width: calc(var(--u) * 1510);
+  flex-direction: column;
+  align-items: center;
+  padding: calc(var(--u) * 64) 0 calc(var(--u) * 70);
+}
+
+.shop-title {
+  margin: 0 0 calc(var(--u) * 62);
+  color: #61bbe8;
+  font-size: calc(var(--u) * 100);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.shop-grid {
+  display: grid;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  /* Columns hug their items and sit centred, 180 apart as in the capture. */
+  grid-template-columns: repeat(2, max-content);
+  justify-content: center;
+  column-gap: calc(var(--u) * 180);
+  row-gap: calc(var(--u) * 75);
+  list-style: none;
+}
+
+.shop-item {
+  display: flex;
+  height: calc(var(--u) * 152);
+  gap: calc(var(--u) * 26);
+}
+
+/* 4:3 box art slot, with the soft drop shadow the shop puts under covers. */
+.shop-thumb {
+  display: flex;
+  width: calc(var(--u) * 202);
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #f6fbfe 0%, #dbedf7 100%);
+  box-shadow: 0 calc(var(--u) * 3) calc(var(--u) * 8) rgb(0 0 0 / 0.28);
+  color: #61bbe8;
+  font-size: calc(var(--u) * 34);
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+}
+
+/* Single line, centred on the cover's height. */
+.shop-item-text {
+  display: flex;
+  align-items: center;
+  font-size: calc(var(--u) * 44);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.shop-home {
+  display: flex;
+  width: calc(var(--u) * 985);
+  height: calc(var(--u) * 155);
+  align-items: center;
+  justify-content: center;
+  margin-top: calc(var(--u) * 70);
+  border: calc(var(--u) * 3) solid #6dc0ea;
+  border-radius: calc(var(--u) * 22);
+  background: linear-gradient(180deg, #fbfeff 0%, #eef8fd 100%);
+  box-shadow:
+    inset 0 calc(var(--u) * -10) calc(var(--u) * 14) rgb(150 205 235 / 0.25),
+    0 calc(var(--u) * 2) calc(var(--u) * 6) rgb(0 0 0 / 0.12);
+  color: #333;
+  font-size: calc(var(--u) * 70);
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    border-color 120ms ease-out,
+    box-shadow 120ms ease-out;
+}
+
+/* Pointed at: the border deepens and a soft blue glow comes up around it. */
+.shop-home:is(:hover, :focus-visible) {
+  border-color: #2fa8e6;
+  box-shadow:
+    inset 0 calc(var(--u) * -10) calc(var(--u) * 14) rgb(150 205 235 / 0.35),
+    0 0 0 calc(var(--u) * 5) rgb(97 187 232 / 0.35);
+  outline: none;
+}
+
+@media (orientation: portrait) {
+  .shop-stage {
+    --u: calc((100vw - 32px) / 800);
+    width: calc(var(--u) * 800);
+    padding-bottom: calc(var(--u) * 220);
+  }
+
+  .shop-title {
+    font-size: calc(var(--u) * 110);
+  }
+
+  .shop-grid {
+    grid-template-columns: max-content;
+    row-gap: calc(var(--u) * 50);
+  }
+
+  .shop-home {
+    width: 100%;
+  }
+}

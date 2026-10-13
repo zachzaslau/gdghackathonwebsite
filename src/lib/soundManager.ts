@@ -1,6 +1,9 @@
 import { Howl, Howler } from 'howler'
 
-export type SoundKey = 'startup' | 'click' | 'ambient'
+export type SoundKey = 'startup' | 'click' | 'ambient' | 'tracks' | 'shop' | 'team'
+
+/** Background music: one track per page that has its own. */
+export type MusicKey = 'ambient' | 'tracks' | 'shop' | 'team'
 
 /**
  * Exact file per cue, extension included. Howler's multi-source `src` array
@@ -15,11 +18,26 @@ const files: Record<SoundKey, string> = {
   startup: 'wii-click.mp3',
   click: 'wii-click.mp3',
   ambient: 'wii-menu-music.mp3',
+  tracks: 'wii-sports-title.mp3',
+  shop: 'wii-shop-theme.mp3',
+  team: 'mii-channel-theme.mp3',
 }
 
 const srcFor = (key: SoundKey) => [`/sounds/${files[key]}`]
 
-const AMBIENT_VOLUME = 0.5
+/**
+ * Page music levels, set so each plays at ~-28.9 LUFS — the level the Wii
+ * Sports theme sounds right at. Wii Sports is mastered at -14 LUFS (plays at
+ * 0.18), the Wii Shop theme at -16.9 LUFS (0.25), the Mii Channel theme at
+ * -19.4 LUFS (0.33). The menu music file was
+ * raised to -28.9 LUFS in the file itself (Howler can't go above 1), and the
+ * menu then plays well under that (0.8 x 0.8), as a quieter backdrop.
+ * Re-measure with ffmpeg's ebur128 filter if a file is swapped.
+ */
+const AMBIENT_VOLUME = 0.64
+const TRACKS_VOLUME = 0.18
+const SHOP_VOLUME = 0.25
+const TEAM_VOLUME = 0.33
 
 /** The menu music fades to silence over this last stretch of the track. */
 const AMBIENT_END_FADE_MS = 5000
@@ -38,25 +56,32 @@ function cancelAmbientEndFade() {
   }
 }
 
-function remainingMs(howl: Howl) {
-  return Math.max(0, (howl.duration() - (howl.seek() as number)) * 1000)
+function remainingMs(howl: Howl, id: number) {
+  return Math.max(0, (howl.duration(id) - (howl.seek(id) as number)) * 1000)
 }
 
-function scheduleAmbientEndFade() {
+function scheduleAmbientEndFade(id: number) {
   cancelAmbientEndFade()
   const ambient = getHowls().ambient
   ambientEndFadeTimer = window.setTimeout(() => {
     ambientEndFadeTimer = null
     // Fade over whatever is actually left, which is less than the full window
     // when playback resumed partway through it.
-    ambient.fade(ambient.volume(), 0, Math.min(AMBIENT_END_FADE_MS, remainingMs(ambient)))
-  }, Math.max(0, remainingMs(ambient) - AMBIENT_END_FADE_MS))
+    const left = Math.min(AMBIENT_END_FADE_MS, remainingMs(ambient, id))
+    ambient.fade(ambient.volume(id) as number, 0, left, id)
+  }, Math.max(0, remainingMs(ambient, id) - AMBIENT_END_FADE_MS))
 }
 
 let howls: Record<SoundKey, Howl> | null = null
 
 function getHowls(): Record<SoundKey, Howl> {
   if (!howls) {
+    // Keep the audio context awake once it's running. By default Howler
+    // suspends it after 30s of silence — which muting causes — and the next
+    // play() then has to wait for it to wake: during that wait the track
+    // reports "not playing", so a mute or page change in that window was
+    // missed and the music surfaced later, mid-song or on the wrong page.
+    Howler.autoSuspend = false
     howls = {
       startup: new Howl({ src: srcFor('startup') }),
       click: new Howl({ src: srcFor('click') }),
@@ -72,7 +97,7 @@ function getHowls(): Record<SoundKey, Howl> {
         // then stays silent until the user comes back to it.
         loop: false,
         volume: AMBIENT_VOLUME,
-        onplay: scheduleAmbientEndFade,
+        onplay: (id) => scheduleAmbientEndFade(id),
         onpause: cancelAmbientEndFade,
         onstop: cancelAmbientEndFade,
         onend: cancelAmbientEndFade,
@@ -81,58 +106,238 @@ function getHowls(): Record<SoundKey, Howl> {
         onplayerror: (_id, err) =>
           console.warn(`[sound] menu music failed to play (${files.ambient}):`, err),
       }),
+      // Tracks page music. Built (and so fetched + decoded) up front with the
+      // rest, so it starts the instant the Tracks channel is opened. Loops for
+      // as long as the visitor stays on the page.
+      tracks: new Howl({
+        src: srcFor('tracks'),
+        loop: true,
+        volume: TRACKS_VOLUME,
+        onloaderror: (_id, err) =>
+          console.warn(`[sound] tracks music failed to load (${files.tracks}):`, err),
+        onplayerror: (_id, err) =>
+          console.warn(`[sound] tracks music failed to play (${files.tracks}):`, err),
+      }),
+      // Sponsors page music, built up front for the same reason.
+      shop: new Howl({
+        src: srcFor('shop'),
+        loop: true,
+        volume: SHOP_VOLUME,
+        onloaderror: (_id, err) =>
+          console.warn(`[sound] shop music failed to load (${files.shop}):`, err),
+        onplayerror: (_id, err) =>
+          console.warn(`[sound] shop music failed to play (${files.shop}):`, err),
+      }),
+      // Team page music (Mii Channel theme).
+      team: new Howl({
+        src: srcFor('team'),
+        loop: true,
+        volume: TEAM_VOLUME,
+        onloaderror: (_id, err) =>
+          console.warn(`[sound] team music failed to load (${files.team}):`, err),
+        onplayerror: (_id, err) =>
+          console.warn(`[sound] team music failed to play (${files.team}):`, err),
+      }),
     }
   }
   return howls
 }
 
 /**
- * Pending stop timer, tracked so a restart can cancel it. Without this, a
- * mount -> unmount -> mount cycle (React StrictMode does exactly this in dev)
- * leaves the previous fade-out's stop() queued: the restart sees the track
- * still "playing", skips play(), and then the stale timer stops it for good.
+ * Whether sound is switched off. Page music is paused (not just silenced)
+ * while muted, so switching sound back on picks it up where it was.
  */
-let ambientStopTimer: number | null = null
+let muted = false
 
-function cancelPendingAmbientStop() {
-  if (ambientStopTimer !== null) {
-    window.clearTimeout(ambientStopTimer)
-    ambientStopTimer = null
+/**
+ * Start/stop control for one page's background music.
+ *
+ * The rules: while its page is open, muting pauses the track and unmuting
+ * resumes it from the same spot. Leaving the page stops and rewinds it, so
+ * the next visit — or unmuting on a page that was opened while muted —
+ * starts it from the top.
+ *
+ * State is tracked here rather than asked of Howler: `playing()` is false
+ * while a play() is still waiting on the audio context, and decisions made on
+ * that answer went wrong. Howler queues pause/stop/fade calls made during that
+ * wait and runs them in order, so acting on our own state is always safe.
+ */
+function createMusicPlayer(key: MusicKey, volume: number) {
+  /** Howler id of this track's current playback, if any. */
+  let soundId: number | null = null
+  let status: 'idle' | 'playing' | 'paused' = 'idle'
+  /** Why it's paused: decides what brings it back. */
+  let pausedFor: 'mute' | 'hidden' | null = null
+  /** Its page opened while muted: start from the top once sound is back on. */
+  let beginOnUnmute = false
+  /** Between start() and stop(): its page is open. */
+  let active = false
+
+  /**
+   * Pending stop at the end of a leave fade-out, tracked so a restart can
+   * cancel it. Without this, a mount -> unmount -> mount cycle (React
+   * StrictMode does exactly this in dev) would have the stale timer stop the
+   * track for good.
+   */
+  let stopTimer: number | null = null
+
+  /**
+   * Listener waiting for the audio context to unlock so the music can start,
+   * kept so a stop (or a StrictMode remount) can cancel it.
+   */
+  let pendingStart: (() => void) | null = null
+
+  let watchingEnd = false
+  const howl = () => getHowls()[key]
+
+  function cancelPendingStop() {
+    if (stopTimer !== null) {
+      window.clearTimeout(stopTimer)
+      stopTimer = null
+    }
+  }
+
+  function cancelPendingStart() {
+    if (pendingStart) {
+      Howler.ctx?.removeEventListener('statechange', pendingStart)
+      pendingStart = null
+    }
+  }
+
+  /** Play from the top — or, while muted, wait until sound is back on. */
+  function begin() {
+    if (muted) {
+      beginOnUnmute = true
+      return
+    }
+    const music = howl()
+    if (!watchingEnd) {
+      watchingEnd = true
+      // A track that doesn't loop (the menu music) is done once it ends.
+      music.on('end', (id) => {
+        if (id === soundId && !music.loop()) status = 'idle'
+      })
+    }
+    if (soundId !== null) music.stop(soundId)
+    soundId = music.play()
+    // Volume is always set outright rather than faded up: a fade-in can stall
+    // (background tab, throttling) and leave the track playing at volume 0.
+    music.volume(volume, soundId)
+    status = 'playing'
+    pausedFor = null
+  }
+
+  function pauseFor(reason: 'mute' | 'hidden') {
+    // Mid fade-out means its page is being left: let that stop finish.
+    if (!active || status !== 'playing' || soundId === null || stopTimer !== null) return
+    howl().pause(soundId)
+    status = 'paused'
+    pausedFor = reason
+  }
+
+  function resume() {
+    if (soundId === null) return
+    howl().play(soundId)
+    status = 'playing'
+    pausedFor = null
+  }
+
+  return {
+    start() {
+      active = true
+      cancelPendingStart()
+      beginOnUnmute = false
+
+      // Still fading out from a moment ago (a StrictMode remount, or a quick
+      // return): keep that playback going rather than restarting it.
+      if (stopTimer !== null) {
+        cancelPendingStop()
+        if (soundId !== null) howl().volume(volume, soundId)
+        return
+      }
+
+      getHowls()
+      const ctx = Howler.ctx
+      if (!ctx || ctx.state === 'running') {
+        begin()
+        return
+      }
+
+      // The context is still locked. No Howler call may be made in this
+      // state: Howler queues calls made while locked and replays them after
+      // unlocking, out of step with whatever has happened since.
+      //
+      // Only wait for the unlock when the visitor has already interacted —
+      // i.e. they pressed A or opened a channel, whose unlock is still
+      // resolving. With no gesture at all (the no-click auto-advance, or
+      // landing straight on a page) it stays silent rather than springing
+      // into music on some later click.
+      if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return
+
+      const onRunning = () => {
+        if (ctx.state !== 'running') return
+        cancelPendingStart()
+        if (active) begin()
+      }
+      pendingStart = onRunning
+      ctx.addEventListener('statechange', onRunning)
+      void ctx.resume()
+    },
+    /** Leave the page: fade out and rewind, ready to start over next time. */
+    stop(fadeMs = 400) {
+      active = false
+      cancelPendingStart()
+      beginOnUnmute = false
+      if (soundId === null || status === 'idle') {
+        status = 'idle'
+        return
+      }
+      const music = howl()
+      const id = soundId
+      if (status === 'paused') {
+        music.stop(id)
+        status = 'idle'
+        pausedFor = null
+        return
+      }
+      cancelPendingStop()
+      music.fade(music.volume(id) as number, 0, fadeMs, id)
+      stopTimer = window.setTimeout(() => {
+        stopTimer = null
+        music.stop(id)
+        status = 'idle'
+      }, fadeMs)
+    },
+    pauseForHidden() {
+      pauseFor('hidden')
+    },
+    resumeAfterHidden() {
+      if (status !== 'paused' || pausedFor !== 'hidden') return
+      if (muted) pausedFor = 'mute'
+      else resume()
+    },
+    pauseForMute() {
+      pauseFor('mute')
+      // Already paused for a hidden tab: it's sound coming back on that
+      // should bring it back now.
+      if (status === 'paused' && pausedFor === 'hidden') pausedFor = 'mute'
+    },
+    resumeAfterMute() {
+      if (beginOnUnmute) {
+        beginOnUnmute = false
+        if (active) begin()
+      } else if (active && status === 'paused' && pausedFor === 'mute') {
+        resume()
+      }
+    },
   }
 }
 
-/**
- * Set only when the music was paused because the tab went hidden, so coming
- * back resumes it — and only it. Music that had already ended, been stopped
- * by leaving the menu, or never started stays silent on return.
- */
-let ambientPausedForHidden = false
-
-/**
- * Listener waiting for the audio context to unlock so the menu music can
- * start, kept so a stop (or a StrictMode remount) can cancel it.
- */
-let pendingAmbientStart: (() => void) | null = null
-
-function cancelPendingAmbientStart() {
-  if (pendingAmbientStart) {
-    Howler.ctx?.removeEventListener('statechange', pendingAmbientStart)
-    pendingAmbientStart = null
-  }
-}
-
-function beginAmbient() {
-  const ambient = getHowls().ambient
-  // Volume is always set outright rather than faded up. A fade-in is driven
-  // by a timer that can stall (background tab, throttling) or be cut short
-  // by a pending fade-out, and the failure mode is the worst one available:
-  // the track plays at volume 0 and seems not to work at all.
-  ambient.volume(AMBIENT_VOLUME)
-  if (ambient.playing()) return
-  // stop() rewinds to 0, so entering the menu always begins the track
-  // rather than resuming part-way through from a previous visit.
-  ambient.stop()
-  ambient.play()
+const musicPlayers: Record<MusicKey, ReturnType<typeof createMusicPlayer>> = {
+  ambient: createMusicPlayer('ambient', AMBIENT_VOLUME),
+  tracks: createMusicPlayer('tracks', TRACKS_VOLUME),
+  shop: createMusicPlayer('shop', SHOP_VOLUME),
+  team: createMusicPlayer('team', TEAM_VOLUME),
 }
 
 export const soundManager = {
@@ -167,68 +372,37 @@ export const soundManager = {
   isAmbientReady() {
     return getHowls().ambient.state() === 'loaded'
   },
-  startAmbient() {
-    getHowls()
-    cancelPendingAmbientStop()
-    cancelPendingAmbientStart()
-    ambientPausedForHidden = false
+  startMusic(key: MusicKey) {
+    musicPlayers[key].start()
+  },
+  stopMusic(key: MusicKey) {
+    musicPlayers[key].stop()
+  },
+  /** Pause whichever page music is playing while the tab is hidden. */
+  pauseMusicForHidden() {
+    Object.values(musicPlayers).forEach((player) => player.pauseForHidden())
+  },
+  /** Resume whatever the tab hiding paused. */
+  resumeMusicAfterHidden() {
+    Object.values(musicPlayers).forEach((player) => player.resumeAfterHidden())
+  },
+  setMuted(next: boolean) {
+    muted = next
+    // Sound effects are silenced; page music is paused/resumed so it carries
+    // on from the same spot when sound comes back on.
+    Object.values(getHowls()).forEach((howl) => howl.mute(next))
+    Object.values(musicPlayers).forEach((player) =>
+      next ? player.pauseForMute() : player.resumeAfterMute(),
+    )
+  },
+}
 
-    const ctx = Howler.ctx
-    if (!ctx || ctx.state === 'running') {
-      beginAmbient()
-      return
-    }
-
-    // The context is still locked. No Howler call may be made in this state:
-    // Howler queues calls made while locked and replays them after unlocking,
-    // so a stop() from a StrictMode remount (or the rewind in beginAmbient)
-    // would run right after the track starts and silence it for good.
-    //
-    // Only wait for the unlock when the visitor has already interacted — i.e.
-    // they pressed A, whose unlock is still resolving. After the no-click
-    // auto-advance the menu stays silent rather than springing into music on
-    // some later click.
-    if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return
-
-    const onRunning = () => {
-      if (ctx.state !== 'running') return
-      cancelPendingAmbientStart()
-      beginAmbient()
-    }
-    pendingAmbientStart = onRunning
-    ctx.addEventListener('statechange', onRunning)
-    // Also covers Howler's own 30s idle auto-suspend, which nothing else
-    // would undo before the next play.
-    void ctx.resume()
-  },
-  stopAmbient(fadeMs = 400) {
-    const ambient = getHowls().ambient
-    cancelPendingAmbientStart()
-    ambientPausedForHidden = false
-    if (!ambient.playing()) return
-    cancelPendingAmbientStop()
-    ambient.fade(ambient.volume(), 0, fadeMs)
-    ambientStopTimer = window.setTimeout(() => {
-      ambient.stop()
-      ambientStopTimer = null
-    }, fadeMs)
-  },
-  /** Pause the menu music while the tab is hidden, keeping its position. */
-  pauseAmbientForHidden() {
-    const ambient = getHowls().ambient
-    // Mid fade-out means the user has already left the menu: let the stop
-    // finish rather than pausing, or returning would resume it on another page.
-    if (!ambient.playing() || ambientStopTimer !== null) return
-    ambient.pause()
-    ambientPausedForHidden = true
-  },
-  /** Pick the menu music back up where it was, if the tab hiding paused it. */
-  resumeAmbientAfterHidden() {
-    if (!ambientPausedForHidden) return
-    ambientPausedForHidden = false
-    getHowls().ambient.play()
-  },
-  setMuted(muted: boolean) {
-    Object.values(getHowls()).forEach((howl) => howl.mute(muted))
-  },
+// In development, editing this file hot-swaps the module without a page
+// reload. Unload the old Howls first, or the previous copy's music keeps
+// playing alongside the new one — out of reach of mute and page changes.
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    cancelAmbientEndFade()
+    Howler.unload()
+  })
 }

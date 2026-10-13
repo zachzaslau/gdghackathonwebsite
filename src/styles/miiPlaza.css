@@ -1,0 +1,321 @@
+/*
+ * Team page: the Mii Channel plaza. A tiled floor fills the window and the
+ * team's Miis wander across it (positions are set from JS; see MiiCrowd).
+ */
+
+.plaza-page {
+  --mii-h: clamp(110px, 22dvh, 230px);
+  --mii-outline: #86a09b;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #fcfcf8;
+}
+
+.plaza-floor {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Own stacking context, so the Miis' depth-sorting z-indexes stay below the
+   page buttons. */
+.plaza-crowd {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  isolation: isolate;
+}
+
+/* ---- A Mii --------------------------------------------------------------- */
+
+/* Zero-size anchor at the Mii's feet; everything hangs off it. */
+.mii {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  will-change: transform;
+}
+
+.mii-shadow {
+  position: absolute;
+  top: calc(var(--mii-h) * -0.045);
+  left: calc(var(--mii-h) * -0.2);
+  width: calc(var(--mii-h) * 0.4);
+  height: calc(var(--mii-h) * 0.09);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.22), rgb(0 0 0 / 0));
+}
+
+/* Flipped by --facing (set from JS) to look the way it's walking. */
+.mii-body {
+  position: absolute;
+  bottom: 0;
+  left: calc(var(--mii-h) * -0.25);
+  display: block;
+  width: calc(var(--mii-h) * 0.5);
+  height: var(--mii-h);
+  transform: scaleX(var(--facing, 1));
+}
+
+.mii-body > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  pointer-events: none;
+}
+
+/* Walking: each Mii is one image, so it bounces and waddles side to side. */
+.mii.is-walking .mii-body {
+  animation: mii-bob 0.21s ease-in-out infinite alternate;
+}
+
+.mii.is-walking .mii-body > img {
+  transform-origin: 50% 100%;
+  animation: mii-waddle 0.42s ease-in-out infinite alternate;
+}
+
+@keyframes mii-bob {
+  to {
+    translate: 0 -3%;
+  }
+}
+
+@keyframes mii-waddle {
+  from {
+    transform: rotate(-4deg);
+  }
+  to {
+    transform: rotate(4deg);
+  }
+}
+
+/* ---- Team members: point at them, click for their card --------------------- */
+
+.mii--member {
+  cursor: pointer;
+}
+
+.mii--member .mii-body {
+  transition: filter 120ms ease-out;
+}
+
+/* The Wii's blue highlight, around the Mii itself. */
+.mii--member:is(:hover, :focus-visible) .mii-body {
+  filter: drop-shadow(0 0 2px #34c3f4) drop-shadow(0 0 5px #34c3f4);
+}
+
+.mii--member:focus-visible {
+  outline: none;
+}
+
+.mii-tag {
+  position: absolute;
+  bottom: calc(var(--mii-h) + 8px);
+  left: 0;
+  padding: 3px 12px 4px;
+  border: 2px solid var(--mii-outline);
+  border-radius: 999px;
+  background: #fff;
+  color: #3d5653;
+  font-family: var(--font-heading);
+  font-size: clamp(12px, 1.6dvh, 16px);
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 4px);
+  transition:
+    opacity 120ms ease-out,
+    transform 120ms ease-out;
+  white-space: nowrap;
+}
+
+.mii--member:is(:hover, :focus-visible) .mii-tag {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---- Pill buttons, from the Mii Channel title screen ---------------------- */
+
+.mii-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 34px 11px;
+  border: 3px solid #74c4ea;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f7 60%, #e3eaee 100%);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.15);
+  color: #333;
+  cursor: pointer;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    border-color 120ms ease-out,
+    box-shadow 120ms ease-out;
+}
+
+.mii-pill:is(:hover, :focus-visible) {
+  border-color: #2fa8e6;
+  box-shadow:
+    0 2px 6px rgb(0 0 0 / 0.15),
+    0 0 0 4px rgb(97 187 232 / 0.35);
+  outline: none;
+}
+
+.plaza-home {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  z-index: 2;
+}
+
+/* ---- Profile card ----------------------------------------------------------- */
+
+.mii-card-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgb(40 60 58 / 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.mii-card {
+  display: grid;
+  width: min(100%, 600px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  grid-template-columns: 170px 1fr;
+  gap: 18px 26px;
+  padding: 28px;
+  border: 3px solid #b9cfcb;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 14px 40px rgb(0 30 30 / 0.3);
+  font-family: var(--font-heading);
+}
+
+/* Their Mii standing on a patch of plaza tile. */
+.mii-card-portrait {
+  display: flex;
+  width: 170px;
+  height: 170px;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  border: 3px solid #b9cfcb;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(#ebe7dc 0 25%, #fcfcf8 0 50%) 50% 50% / 42px 42px;
+}
+
+.mii-card-portrait > img {
+  height: 88%;
+  object-fit: contain;
+}
+
+/* A photo fills the whole circle instead of standing on the tiles. */
+.mii-card-portrait.has-photo {
+  background: #eef6f5;
+}
+
+.mii-card-portrait.has-photo > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mii-card-info {
+  min-width: 0;
+  align-self: center;
+}
+
+.mii-card-name {
+  margin: 0;
+  color: #3d5653;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.mii-card-role {
+  margin: 4px 0 0;
+  color: #4f8f88;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.mii-card-team {
+  display: inline-block;
+  margin: 10px 0 0;
+  padding: 3px 12px;
+  border: 2px solid #b9cfcb;
+  border-radius: 999px;
+  background: #eef6f5;
+  color: #3d5653;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.mii-card-bio {
+  margin: 12px 0 0;
+  color: #3a4a48;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.mii-card-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mii-card-links a {
+  color: #1585d0;
+  font-weight: 700;
+}
+
+.mii-card-back {
+  grid-column: 1 / -1;
+  justify-self: center;
+  min-width: 200px;
+}
+
+@media (max-width: 560px) {
+  .mii-card {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .mii-card-portrait {
+    justify-self: center;
+  }
+
+  .mii-card-links {
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mii.is-walking .mii-body,
+  .mii.is-walking .mii-body > img {
+    animation: none;
+  }
+}
