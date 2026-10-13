@@ -11,6 +11,11 @@ interface Walker {
   walking: boolean
   wait: number
   facing: 1 | -1
+  /** Seconds left in a dance with `partner`; 0 when not dancing. */
+  dance: number
+  partner: number
+  /** Seconds before it can start another dance. */
+  cooldown: number
 }
 
 /** Where feet may go, as 0-1 fractions of the plaza. */
@@ -24,19 +29,33 @@ interface Bounds {
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 const between = (lo: number, hi: number) => lo + Math.random() * (hi - lo)
 
+/**
+ * Two Miis that bump into each other stop and dance together. Close enough
+ * to bump: feet this many Mii-heights apart across, and this close in depth.
+ */
+const BUMP_X = 0.36
+const BUMP_Y = 0.12
+/** One dance: two cycles of the 1.6s routine in miiPlaza.css. */
+const DANCE_SECONDS = 3.2
+/** After a dance, how long before that Mii will dance again. */
+const DANCE_COOLDOWN = 10
+
 /** Room kept clear above a Mii's head for its name tag. */
 const TAG_ROOM = 40
 const EDGE_GAP = 8
+/** How far above the Home button's top edge feet (and shadow) must stay. */
+const BUTTON_GAP = 6
 
 /**
  * Keep every Mii wholly on screen: feet stay half a Mii's width in from the
- * sides, a full Mii (plus its name tag) down from the top, and clear of the
- * bottom edge for the shadow.
+ * sides, a full Mii (plus its name tag) down from the top, and, shadow
+ * included, a few pixels above the Home and sound buttons along the bottom
+ * (`buttonsTop`: how far up from the bottom edge those buttons reach).
  */
-function boundsFor(w: number, h: number, miiHeight: number): Bounds {
+function boundsFor(w: number, h: number, miiHeight: number, buttonsTop: number): Bounds {
   const sideX = miiHeight * 0.25 + EDGE_GAP
   const top = miiHeight + TAG_ROOM
-  const bottom = miiHeight * 0.06 + EDGE_GAP
+  const bottom = Math.max(miiHeight * 0.06 + EDGE_GAP, buttonsTop + miiHeight * 0.045 + BUTTON_GAP)
   return {
     x0: Math.min(0.5, sideX / w),
     x1: Math.max(0.5, 1 - sideX / w),
@@ -65,14 +84,20 @@ function spawn(count: number, b: Bounds): Walker[] {
       walking: false,
       wait: between(0, 3),
       facing: Math.random() < 0.5 ? -1 : 1,
+      dance: 0,
+      partner: -1,
+      cooldown: 0,
     })
   }
   return walkers
 }
 
-/** Head somewhere nearby, the way Miis mill about the plaza. */
-function pickTarget(w: Walker, b: Bounds) {
-  const angle = Math.random() * Math.PI * 2
+/**
+ * Head somewhere nearby, the way Miis mill about the plaza. Given `away`
+ * (radians), it sets off roughly in that direction.
+ */
+function pickTarget(w: Walker, b: Bounds, away?: number) {
+  const angle = away === undefined ? Math.random() * Math.PI * 2 : away + between(-0.7, 0.7)
   const dist = between(0.1, 0.32)
   w.tx = clamp(w.x + Math.cos(angle) * dist, b.x0, b.x1)
   w.ty = clamp(w.y + Math.sin(angle) * dist * 0.7, b.y0, b.y1)
@@ -88,7 +113,8 @@ interface MiiCrowdProps {
 
 /**
  * The team's Miis, wandering the plaza at random. Point at one to stop it and
- * see its name; click it for that person's card. Movement runs on
+ * see its name; click it for that person's card. Two that bump into each
+ * other stop for a short dance together, then go their separate ways. Movement runs on
  * requestAnimationFrame and writes transforms straight to the DOM, so React
  * doesn't re-render every frame.
  */
@@ -102,19 +128,23 @@ export function MiiCrowd({ members, selectedId, onSelect }: MiiCrowdProps) {
   }, [selectedId])
 
   useEffect(() => {
-    // Measure a Mii's rendered height (it's sized in CSS) for the bounds;
-    // re-measured on resize rather than every frame, to avoid forcing layout.
+    // Measure a Mii's rendered height (it's sized in CSS) and where the Home
+    // button's top edge sits, for the bounds; re-measured on resize rather
+    // than every frame, to avoid forcing layout.
     let miiHeight = 0
+    let buttonsTop = 0
     const measure = () => {
       const body = elements.current[0]?.querySelector<HTMLElement>('.mii-body')
       miiHeight = body?.offsetHeight ?? 0
+      const home = document.querySelector<HTMLElement>('.plaza-home')
+      buttonsTop = home ? window.innerHeight - home.getBoundingClientRect().top : 0
     }
     measure()
     window.addEventListener('resize', measure)
 
     const walkers = spawn(
       members.length,
-      boundsFor(window.innerWidth, window.innerHeight, miiHeight),
+      boundsFor(window.innerWidth, window.innerHeight, miiHeight, buttonsTop),
     )
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     let last = performance.now()
@@ -127,7 +157,32 @@ export function MiiCrowd({ members, selectedId, onSelect }: MiiCrowdProps) {
       const w = window.innerWidth
       const h = window.innerHeight
       const scale = clamp(h / 900, 0.5, 1.4)
-      const bounds = boundsFor(w, h, miiHeight)
+      const bounds = boundsFor(w, h, miiHeight, buttonsTop)
+
+      if (!still) {
+        const free = (i: number) =>
+          walkers[i].dance === 0 &&
+          walkers[i].cooldown === 0 &&
+          members[i].id !== hoveredId.current &&
+          members[i].id !== selectedRef.current
+        for (let i = 0; i < walkers.length; i++) {
+          for (let j = i + 1; j < walkers.length; j++) {
+            const a = walkers[i]
+            const b = walkers[j]
+            if (!free(i) || !free(j) || !(a.walking || b.walking)) continue
+            if (
+              Math.abs((a.x - b.x) * w) < BUMP_X * miiHeight &&
+              Math.abs((a.y - b.y) * h) < BUMP_Y * miiHeight
+            ) {
+              for (const [d, partner] of [[a, j], [b, i]] as const) {
+                d.walking = false
+                d.dance = DANCE_SECONDS
+                d.partner = partner
+              }
+            }
+          }
+        }
+      }
 
       walkers.forEach((walker, i) => {
         const el = elements.current[i]
@@ -136,7 +191,22 @@ export function MiiCrowd({ members, selectedId, onSelect }: MiiCrowdProps) {
         // A Mii being pointed at (or whose card is open) stops to be clicked.
         const held = id === hoveredId.current || id === selectedRef.current
 
-        if (!still && !held) {
+        walker.cooldown = Math.max(0, walker.cooldown - dt)
+        if (walker.dance > 0) {
+          walker.dance -= dt
+          const partner = walkers[walker.partner]
+          // Face each other, easing apart if they bumped in overlapping.
+          const gap = (partner.x - walker.x) * w
+          walker.facing = gap < 0 ? -1 : 1
+          const short = BUMP_X * miiHeight - Math.abs(gap)
+          if (short > 0) walker.x -= (walker.facing * Math.min(short / 2, 60 * scale * dt)) / w
+          if (walker.dance <= 0) {
+            // Done: part ways, each heading off away from the other.
+            walker.dance = 0
+            walker.cooldown = DANCE_COOLDOWN
+            pickTarget(walker, bounds, gap < 0 ? 0 : Math.PI)
+          }
+        } else if (!still && !held) {
           if (walker.walking) {
             const dx = (walker.tx - walker.x) * w
             const dy = (walker.ty - walker.y) * h
@@ -170,6 +240,10 @@ export function MiiCrowd({ members, selectedId, onSelect }: MiiCrowdProps) {
         el.style.setProperty('--facing', String(walker.facing))
         if (el.classList.contains('is-walking') !== walking) {
           el.classList.toggle('is-walking', walking)
+        }
+        const dancing = walker.dance > 0
+        if (el.classList.contains('is-dancing') !== dancing) {
+          el.classList.toggle('is-dancing', dancing)
         }
       })
       frame = requestAnimationFrame(tick)
@@ -210,6 +284,10 @@ export function MiiCrowd({ members, selectedId, onSelect }: MiiCrowdProps) {
             <span className="mii-shadow" />
             <span className="mii-body">
               <img src={member.mii} alt="" draggable={false} />
+            </span>
+            <span className="mii-notes" aria-hidden="true">
+              <span>♪</span>
+              <span>♫</span>
             </span>
             <span className="mii-tag">{member.name}</span>
           </button>

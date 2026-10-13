@@ -98,6 +98,92 @@
   }
 }
 
+/* Dancing with a Mii it bumped into: hops on the beat and sways, with a
+   twirl (a flip through the X axis, since each Mii is one flat image) every
+   other bar. Both partners start in the same frame, so they stay in step. */
+.mii.is-dancing .mii-body {
+  animation:
+    mii-bob 0.2s ease-in-out infinite alternate,
+    mii-twirl 1.6s ease-in-out infinite;
+}
+
+.mii.is-dancing .mii-body > img {
+  transform-origin: 50% 100%;
+  animation: mii-sway 0.8s ease-in-out infinite;
+}
+
+@keyframes mii-sway {
+  0%,
+  100% {
+    transform: rotate(-9deg);
+  }
+  50% {
+    transform: rotate(9deg);
+  }
+}
+
+@keyframes mii-twirl {
+  0%,
+  55% {
+    scale: 1 1;
+  }
+  70% {
+    scale: -1 1;
+  }
+  85%,
+  100% {
+    scale: 1 1;
+  }
+}
+
+/* Music notes drifting up over a dancing Mii. */
+.mii-notes {
+  position: absolute;
+  bottom: calc(var(--mii-h) * 0.92);
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease-out;
+}
+
+.mii.is-dancing .mii-notes {
+  opacity: 1;
+}
+
+.mii-notes > span {
+  position: absolute;
+  bottom: 0;
+  color: #34c3f4;
+  font-size: calc(var(--mii-h) * 0.16);
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 0 3px #fff;
+  animation: mii-note 1.2s ease-out infinite;
+}
+
+.mii-notes > span:first-child {
+  left: calc(var(--mii-h) * -0.2);
+}
+
+.mii-notes > span:last-child {
+  left: calc(var(--mii-h) * 0.08);
+  animation-delay: 0.6s;
+}
+
+@keyframes mii-note {
+  from {
+    opacity: 0;
+    transform: translateY(0) rotate(-10deg);
+  }
+  25% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(calc(var(--mii-h) * -0.25)) rotate(10deg);
+  }
+}
+
 /* ---- Team members: point at them, click for their card --------------------- */
 
 .mii--member {

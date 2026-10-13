@@ -1,5 +1,14 @@
 @import 'tailwindcss';
 
+/* MLH trust badge (MlhTrustBadge.tsx): hangs from the top edge, 50px in from
+   the right. Width stays within MLH's 60-100px range, held near the low end
+   on short landscape screens so it doesn't swallow the menus. `clear` is the
+   room a top-right element leaves so the badge doesn't cover it. */
+:root {
+  --mlh-badge-w: clamp(60px, min(10vw, 16vh), 100px);
+  --mlh-badge-clear: calc(50px + var(--mlh-badge-w) + 16px);
+}
+
 @theme {
   --font-heading: 'M PLUS Rounded 1c', ui-rounded, system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
@@ -126,7 +135,8 @@ html.wii-cursor-active * {
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(3, 1fr);
   aspect-ratio: 2.409;
-  width: min(83.83vw, 63.9dvh * 2.409);
+  /* The last cap keeps the top-right tile clear of the MLH badge. */
+  width: min(83.83vw, 63.9dvh * 2.409, 100vw - 2 * var(--mlh-badge-clear));
   gap: 2.5% 1%;
 }
 

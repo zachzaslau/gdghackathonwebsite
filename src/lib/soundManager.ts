@@ -144,6 +144,53 @@ function getHowls(): Record<SoundKey, Howl> {
 }
 
 /**
+ * Waiting for the audio context to run again before music resumes. Browsers
+ * can suspend it on their own while the tab is in the background (Safari, and
+ * phones when switching apps), and Howler doesn't notice: it still believes
+ * the context is running, so a play() lands on a stopped clock and stays
+ * silent. Nudge it awake now, and again on the visitor's next tap or key in
+ * case the browser wants a gesture first, and only resume once it's running.
+ */
+let pendingWake: (() => void) | null = null
+const WAKE_GESTURES = ['pointerdown', 'keydown', 'touchend'] as const
+
+function cancelPendingWake() {
+  if (!pendingWake) return
+  const wake = pendingWake
+  Howler.ctx?.removeEventListener('statechange', wake)
+  WAKE_GESTURES.forEach((type) => window.removeEventListener(type, wake, true))
+  pendingWake = null
+}
+
+function whenAudioRunning(then: () => void) {
+  cancelPendingWake()
+  const ctx = Howler.ctx
+  if (!ctx || ctx.state === 'running') {
+    then()
+    return
+  }
+  const wake = () => {
+    if (ctx.state === 'running') {
+      cancelPendingWake()
+      then()
+    } else {
+      // Re-check once resume() settles too: not every browser fires
+      // statechange on the way back from an interruption.
+      ctx.resume().then(
+        () => {
+          if (pendingWake === wake && ctx.state === 'running') wake()
+        },
+        () => {},
+      )
+    }
+  }
+  pendingWake = wake
+  ctx.addEventListener('statechange', wake)
+  WAKE_GESTURES.forEach((type) => window.addEventListener(type, wake, true))
+  wake()
+}
+
+/**
  * Whether sound is switched off. Page music is paused (not just silenced)
  * while muted, so switching sound back on picks it up where it was.
  */
@@ -252,7 +299,15 @@ function createMusicPlayer(key: MusicKey, volume: number) {
       // return): keep that playback going rather than restarting it.
       if (stopTimer !== null) {
         cancelPendingStop()
-        if (soundId !== null) howl().volume(volume, soundId)
+        if (soundId !== null) {
+          // Twice on purpose. The first call cancels the fade, but Howler
+          // does that by setting the volume to the fade's target (0): the
+          // speaker level comes back, yet Howler remembers 0, so the next
+          // pause/resume (tabbing away and back) restores silence. The
+          // second call, with no fade left to cancel, sets it for real.
+          howl().volume(volume, soundId)
+          howl().volume(volume, soundId)
+        }
         return
       }
 
@@ -311,6 +366,9 @@ function createMusicPlayer(key: MusicKey, volume: number) {
     pauseForHidden() {
       pauseFor('hidden')
     },
+    isPausedForHidden() {
+      return status === 'paused' && pausedFor === 'hidden'
+    },
     resumeAfterHidden() {
       if (status !== 'paused' || pausedFor !== 'hidden') return
       if (muted) pausedFor = 'mute'
@@ -321,6 +379,10 @@ function createMusicPlayer(key: MusicKey, volume: number) {
       // Already paused for a hidden tab: it's sound coming back on that
       // should bring it back now.
       if (status === 'paused' && pausedFor === 'hidden') pausedFor = 'mute'
+    },
+    /** Whether switching sound back on would start or resume this track. */
+    waitsForUnmute() {
+      return beginOnUnmute || (active && status === 'paused' && pausedFor === 'mute')
     },
     resumeAfterMute() {
       if (beginOnUnmute) {
@@ -380,20 +442,35 @@ export const soundManager = {
   },
   /** Pause whichever page music is playing while the tab is hidden. */
   pauseMusicForHidden() {
+    cancelPendingWake()
     Object.values(musicPlayers).forEach((player) => player.pauseForHidden())
   },
   /** Resume whatever the tab hiding paused. */
   resumeMusicAfterHidden() {
-    Object.values(musicPlayers).forEach((player) => player.resumeAfterHidden())
+    const players = Object.values(musicPlayers)
+    const resumeAll = () => players.forEach((player) => player.resumeAfterHidden())
+    // While muted this only hands the paused track over to the unmute.
+    if (muted || !players.some((player) => player.isPausedForHidden())) {
+      resumeAll()
+      return
+    }
+    whenAudioRunning(() => {
+      if (!document.hidden) resumeAll()
+    })
   },
   setMuted(next: boolean) {
     muted = next
     // Sound effects are silenced; page music is paused/resumed so it carries
     // on from the same spot when sound comes back on.
     Object.values(getHowls()).forEach((howl) => howl.mute(next))
-    Object.values(musicPlayers).forEach((player) =>
-      next ? player.pauseForMute() : player.resumeAfterMute(),
-    )
+    if (next) {
+      cancelPendingWake()
+      Object.values(musicPlayers).forEach((player) => player.pauseForMute())
+    } else if (Object.values(musicPlayers).some((player) => player.waitsForUnmute())) {
+      whenAudioRunning(() => {
+        if (!muted) Object.values(musicPlayers).forEach((player) => player.resumeAfterMute())
+      })
+    }
   },
 }
 

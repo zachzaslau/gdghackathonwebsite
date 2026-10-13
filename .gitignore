@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code project files (memory lives outside the repo, in ~/.claude)
+.claude/

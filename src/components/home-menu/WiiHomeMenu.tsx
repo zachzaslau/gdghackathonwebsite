@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { usePageMusic } from '../../hooks/usePageMusic'
+import { MlhTrustBadge } from '../layout/MlhTrustBadge'
 import { fadeVariants } from '../../lib/motionVariants'
 import { BottomBar } from './BottomBar'
 import { ChannelGrid } from './ChannelGrid'
@@ -28,6 +29,7 @@ export function WiiHomeMenu() {
       </div>
 
       <BottomBar />
+      <MlhTrustBadge />
     </motion.div>
   )
 }
