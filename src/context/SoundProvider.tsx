@@ -35,12 +35,9 @@ export function SoundProvider({ children }: { children: ReactNode }) {
   // visible hitch while all of that ran on the click.
   const mutedRef = useRef(muted)
 
-  // Start fetching + decoding audio immediately, so the menu music is ready
-  // the moment the boot sequence ends rather than loading only once it's
-  // first needed. (Fetching is not gated on a user gesture; only playback is.)
+  // Audio itself is set up in main.tsx, before the first render. Apply a saved
+  // "off" before anything can play.
   useEffect(() => {
-    soundManager.preload()
-    // Apply a saved "off" before anything can play.
     soundManager.setMuted(mutedRef.current)
   }, [])
 

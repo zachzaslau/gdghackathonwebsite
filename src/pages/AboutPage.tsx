@@ -1,8 +1,11 @@
 import { aboutMission, aboutStats } from '../data/aboutContent'
 import { PageShell } from '../components/layout/PageShell'
 import { StatCallout } from '../components/content/StatCallout'
+import { usePageMusic } from '../hooks/usePageMusic'
 
 export function AboutPage() {
+  usePageMusic('about')
+
   return (
     <PageShell title={aboutMission.heading}>
       <div className="space-y-4 text-base leading-relaxed text-slate-600">

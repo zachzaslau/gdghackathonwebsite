@@ -1,9 +1,9 @@
 import { Howl, Howler } from 'howler'
 
-export type SoundKey = 'startup' | 'click' | 'ambient' | 'tracks' | 'shop' | 'team'
+export type SoundKey = 'startup' | 'click' | 'ambient' | 'tracks' | 'shop' | 'team' | 'about' | 'faq'
 
 /** Background music: one track per page that has its own. */
-export type MusicKey = 'ambient' | 'tracks' | 'shop' | 'team'
+export type MusicKey = 'ambient' | 'tracks' | 'shop' | 'team' | 'about' | 'faq'
 
 /**
  * Exact file per cue, extension included. Howler's multi-source `src` array
@@ -21,6 +21,8 @@ const files: Record<SoundKey, string> = {
   tracks: 'wii-sports-title.mp3',
   shop: 'wii-shop-theme.mp3',
   team: 'mii-channel-theme.mp3',
+  about: 'coconut-mall.mp3',
+  faq: 'nsmb-overworld.mp3',
 }
 
 const srcFor = (key: SoundKey) => [`/sounds/${files[key]}`]
@@ -29,7 +31,8 @@ const srcFor = (key: SoundKey) => [`/sounds/${files[key]}`]
  * Page music levels, set so each plays at ~-28.9 LUFS — the level the Wii
  * Sports theme sounds right at. Wii Sports is mastered at -14 LUFS (plays at
  * 0.18), the Wii Shop theme at -16.9 LUFS (0.25), the Mii Channel theme at
- * -19.4 LUFS (0.33). The menu music file was
+ * -19.4 LUFS (0.33), Coconut Mall at -10.6 LUFS (0.12), the New Super Mario Bros. Wii
+ * overworld theme at -12.3 LUFS (0.15). The menu music file was
  * raised to -28.9 LUFS in the file itself (Howler can't go above 1), and the
  * menu then plays well under that (0.8 x 0.8), as a quieter backdrop.
  * Re-measure with ffmpeg's ebur128 filter if a file is swapped.
@@ -38,6 +41,8 @@ const AMBIENT_VOLUME = 0.64
 const TRACKS_VOLUME = 0.18
 const SHOP_VOLUME = 0.25
 const TEAM_VOLUME = 0.33
+const ABOUT_VOLUME = 0.12
+const FAQ_VOLUME = 0.15
 
 /** The menu music fades to silence over this last stretch of the track. */
 const AMBIENT_END_FADE_MS = 5000
@@ -106,11 +111,12 @@ function getHowls(): Record<SoundKey, Howl> {
         onplayerror: (_id, err) =>
           console.warn(`[sound] menu music failed to play (${files.ambient}):`, err),
       }),
-      // Tracks page music. Built (and so fetched + decoded) up front with the
-      // rest, so it starts the instant the Tracks channel is opened. Loops for
-      // as long as the visitor stays on the page.
+      // Tracks page music. Loaded in the background once the menu music is in
+      // (see loadPageMusicInTurn), so it's ready the instant the Tracks
+      // channel is opened. Loops for as long as the visitor stays on the page.
       tracks: new Howl({
         src: srcFor('tracks'),
+        preload: false,
         loop: true,
         volume: TRACKS_VOLUME,
         onloaderror: (_id, err) =>
@@ -118,9 +124,10 @@ function getHowls(): Record<SoundKey, Howl> {
         onplayerror: (_id, err) =>
           console.warn(`[sound] tracks music failed to play (${files.tracks}):`, err),
       }),
-      // Sponsors page music, built up front for the same reason.
+      // Sponsors page music, loaded in the background the same way.
       shop: new Howl({
         src: srcFor('shop'),
+        preload: false,
         loop: true,
         volume: SHOP_VOLUME,
         onloaderror: (_id, err) =>
@@ -131,6 +138,7 @@ function getHowls(): Record<SoundKey, Howl> {
       // Team page music (Mii Channel theme).
       team: new Howl({
         src: srcFor('team'),
+        preload: false,
         loop: true,
         volume: TEAM_VOLUME,
         onloaderror: (_id, err) =>
@@ -138,9 +146,63 @@ function getHowls(): Record<SoundKey, Howl> {
         onplayerror: (_id, err) =>
           console.warn(`[sound] team music failed to play (${files.team}):`, err),
       }),
+      // About page music (Coconut Mall, from Mario Kart Wii).
+      about: new Howl({
+        src: srcFor('about'),
+        preload: false,
+        loop: true,
+        volume: ABOUT_VOLUME,
+        onloaderror: (_id, err) =>
+          console.warn(`[sound] about music failed to load (${files.about}):`, err),
+        onplayerror: (_id, err) =>
+          console.warn(`[sound] about music failed to play (${files.about}):`, err),
+      }),
+      // FAQ page music (the New Super Mario Bros. Wii overworld theme).
+      faq: new Howl({
+        src: srcFor('faq'),
+        preload: false,
+        loop: true,
+        volume: FAQ_VOLUME,
+        onloaderror: (_id, err) =>
+          console.warn(`[sound] faq music failed to load (${files.faq}):`, err),
+        onplayerror: (_id, err) =>
+          console.warn(`[sound] faq music failed to play (${files.faq}):`, err),
+      }),
     }
+    howls.ambient.once('load', loadPageMusicInTurn)
+    howls.ambient.once('loaderror', loadPageMusicInTurn)
   }
   return howls
+}
+
+/**
+ * Load the other pages' music one track at a time, starting once the menu
+ * music is in. Decoding every track at once kept the browser busy for the
+ * first second or so, and a visitor who pressed A straight away could hear
+ * the chime and menu music stutter while it did.
+ */
+const PAGE_MUSIC: MusicKey[] = ['tracks', 'shop', 'team', 'about', 'faq']
+const failedToLoad = new Set<Howl>()
+
+function loadPageMusicInTurn() {
+  const next = PAGE_MUSIC.map((key) => getHowls()[key]).find(
+    (howl) => howl.state() !== 'loaded' && !failedToLoad.has(howl),
+  )
+  if (!next) return
+  const done = () => {
+    next.off('load', done)
+    next.off('loaderror', failed)
+    loadPageMusicInTurn()
+  }
+  // Skip a track that won't load rather than stalling the rest behind it.
+  const failed = () => {
+    failedToLoad.add(next)
+    done()
+  }
+  next.once('load', done)
+  next.once('loaderror', failed)
+  // Already loading if its page was opened early: just wait for it.
+  if (next.state() === 'unloaded') next.load()
 }
 
 /**
@@ -266,6 +328,8 @@ function createMusicPlayer(key: MusicKey, volume: number) {
       })
     }
     if (soundId !== null) music.stop(soundId)
+    // Its page was opened before its turn to load in the background.
+    if (music.state() === 'unloaded') music.load()
     soundId = music.play()
     // Volume is always set outright rather than faded up: a fade-in can stall
     // (background tab, throttling) and leave the track playing at volume 0.
@@ -349,7 +413,11 @@ function createMusicPlayer(key: MusicKey, volume: number) {
       }
       const music = howl()
       const id = soundId
-      if (status === 'paused') {
+      // Paused, or not even loaded yet (its page was left before its track
+      // arrived): nothing is audible, so stop outright. A fade on an unloaded
+      // track is queued by Howler and replayed after it loads, leaving the
+      // next playback stuck at volume 0.
+      if (status === 'paused' || music.state() !== 'loaded') {
         music.stop(id)
         status = 'idle'
         pausedFor = null
@@ -400,6 +468,8 @@ const musicPlayers: Record<MusicKey, ReturnType<typeof createMusicPlayer>> = {
   tracks: createMusicPlayer('tracks', TRACKS_VOLUME),
   shop: createMusicPlayer('shop', SHOP_VOLUME),
   team: createMusicPlayer('team', TEAM_VOLUME),
+  about: createMusicPlayer('about', ABOUT_VOLUME),
+  faq: createMusicPlayer('faq', FAQ_VOLUME),
 }
 
 export const soundManager = {

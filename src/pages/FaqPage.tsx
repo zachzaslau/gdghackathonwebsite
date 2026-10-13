@@ -2,6 +2,7 @@ import { faqItems } from '../data/faq'
 import type { FaqCategory } from '../types/content'
 import { PageShell } from '../components/layout/PageShell'
 import { FaqAccordion } from '../components/content/FaqAccordion'
+import { usePageMusic } from '../hooks/usePageMusic'
 
 const categoryOrder: FaqCategory[] = [
   'General',
@@ -11,6 +12,8 @@ const categoryOrder: FaqCategory[] = [
 ]
 
 export function FaqPage() {
+  usePageMusic('faq')
+
   return (
     <PageShell title="FAQ" subtitle="Everything you need to know before the event.">
       {categoryOrder.map((category) => {
