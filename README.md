@@ -78,7 +78,7 @@ the router (for example, `/team`). Keep new public asset URLs under `/devfest/`.
 The Vercel team is `9ldes-projects`. The `gdg-devfest` project hosts this app,
 while `ufgdgoncampus` owns `ufgdg.com` and the main club website. A project-level
 rewrite on `ufgdgoncampus` sends only `/devfest` and its descendants to
-`https://gdg-devfest.vercel.app/devfest`. The prefix is preserved. The hackathon
+`https://gdg-devfest-delta.vercel.app/devfest`. The prefix is preserved. The hackathon
 project publishes `dist/`, with all generated files inside `dist/devfest/` so
 asset locations match their public URLs. Its `vercel.json` serves
 `devfest/index.html` for client-side routes; existing static files are served
