@@ -93,3 +93,12 @@ app over the `ufgdgoncampus` project. If routing fails, inspect that project's
 Routing Rules and restore the `/devfest` rewrite to the public production alias;
 if a deep link fails, inspect this app's rewrite and router basename. There is
 no supported root-path deployment mode.
+
+The deployed source is on the `deploy/devfest` branch. In the club project's
+Routing Rules, the **DevFest hackathon** rule uses regex
+`^(/devfest(?:/.*)?)$` and destination
+`https://gdg-devfest-delta.vercel.app$1`. The capture preserves the entire path,
+including static asset filenames, and excludes unrelated paths such as
+`/devfestival`. After changing a rule, promote its staged version to publish it.
+Check that JavaScript, CSS, images, and audio return their actual content types;
+a `200` response containing HTML for an asset is still a routing failure.
