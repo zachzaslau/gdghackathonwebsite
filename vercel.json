@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/devfest/:path*", "destination": "/index.html" }
+    { "source": "/devfest/:path*", "destination": "/devfest/index.html" }
   ]
 }

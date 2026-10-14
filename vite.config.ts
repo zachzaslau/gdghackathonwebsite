@@ -5,5 +5,6 @@ import { defineConfig } from 'vite'
 // https://vite.dev/config/
 export default defineConfig({
   base: '/devfest/',
+  build: { outDir: 'dist/devfest' },
   plugins: [react(), tailwindcss()],
 })
