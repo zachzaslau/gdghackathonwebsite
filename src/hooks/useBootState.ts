@@ -17,7 +17,7 @@ export const bootWindowRemaining = () => Math.max(0, BOOT_WINDOW_MS - performanc
 // and back. The warning screen is only for a load or refresh on the home
 // page: arriving on any other page counts as already booted, so going Home
 // from there lands straight on the menu.
-let hasBootedGlobal = window.location.pathname !== '/'
+let hasBootedGlobal = window.location.pathname.replace(/\/$/, '') !== import.meta.env.BASE_URL.replace(/\/$/, '')
 
 export function useBootState() {
   // Also treat the boot as done once the window has passed, so landing on

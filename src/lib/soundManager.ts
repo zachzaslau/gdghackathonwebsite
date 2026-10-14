@@ -25,7 +25,7 @@ const files: Record<SoundKey, string> = {
   faq: 'nsmb-overworld.mp3',
 }
 
-const srcFor = (key: SoundKey) => [`/sounds/${files[key]}`]
+const srcFor = (key: SoundKey) => [`/devfest/sounds/${files[key]}`]
 
 /**
  * Page music levels, set so each plays at ~-28.9 LUFS — the level the Wii

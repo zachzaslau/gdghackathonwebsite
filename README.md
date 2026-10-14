@@ -10,7 +10,7 @@ grid of "channels" that serve as the site's navigation.
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
+npm run dev      # http://localhost:5173/devfest/
 npm run build    # production build into dist/
 npm run lint
 ```
@@ -43,7 +43,7 @@ contact, socials). The components render whatever is in those files, so adding a
 track or an FAQ entry needs no component changes.
 
 `src/data/channels.ts` defines the 12 home-menu tiles. A tile with
-`image: '/channels/whatever.png'` renders that art full-bleed and hides its text
+`image: '/devfest/channels/whatever.png'` renders that art full-bleed and hides its text
 label; without one it falls back to a coloured tile with the label.
 
 ### Audio
@@ -67,3 +67,27 @@ the measurements written up.
 The reference screenshots and the sound effects in this repository are Nintendo's
 and are used here only as a non-commercial student-club tribute. Replace them with
 original assets before using this anywhere that matters.
+
+## Production deployment
+
+The canonical public URL is `https://ufgdg.com/devfest`. This app builds with
+Vite's `/devfest/` base and React Router uses that same basename. Public image
+and audio URLs include `/devfest/`; in-app `Link` destinations stay relative to
+the router (for example, `/team`). Keep new public asset URLs under `/devfest/`.
+
+The Vercel team is `9ldes-projects`. The `gdg-devfest` project hosts this app,
+while `ufgdgoncampus` owns `ufgdg.com` and the main club website. A project-level
+rewrite on `ufgdgoncampus` sends only `/devfest` and its descendants to
+`https://gdg-devfest.vercel.app/devfest`. The prefix is preserved. The hackathon
+project's `vercel.json` serves `index.html` for client-side routes; existing
+static files are served directly. The hackathon origin is public so the rewrite
+can fetch it without deployment protection.
+
+To publish an update, use Node 24, run `npm ci`, `npm run build`, and
+`npm run lint`, then deploy this repository to `gdg-devfest` in production.
+Verify `/devfest`, `/devfest/team`, a channel image, and a sound file through
+`ufgdg.com`, and confirm the main club homepage still loads. Do not deploy this
+app over the `ufgdgoncampus` project. If routing fails, inspect that project's
+Routing Rules and restore the `/devfest` rewrite to the public production alias;
+if a deep link fails, inspect this app's rewrite and router basename. There is
+no supported root-path deployment mode.

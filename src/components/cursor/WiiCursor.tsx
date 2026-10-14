@@ -24,7 +24,7 @@ export function WiiCursor() {
       style={{ x, y }}
     >
       <motion.img
-        src="/wii-cursor.png"
+        src="/devfest/wii-cursor.png"
         alt=""
         draggable={false}
         animate={{ scale: pressed ? 0.9 : 1 }}

@@ -30,7 +30,7 @@ export function HomeMenuButton() {
       {/* ~58% of the button's width: the same visual weight the "Wii"
           wordmark has on the reference, clear of the ring on both sides. */}
       <img
-        src="/gdg-mark.png"
+        src="/devfest/gdg-mark.png"
         alt=""
         draggable={false}
         className={`pointer-events-none w-[58%] select-none transition-[opacity,filter] ${

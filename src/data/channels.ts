@@ -13,7 +13,7 @@ export const channels: Channel[] = [
     external: true,
     filled: true,
     accent: 'blue',
-    image: '/channels/register.png',
+    image: '/devfest/channels/register.png',
   },
   {
     id: 'tracks',
@@ -21,7 +21,7 @@ export const channels: Channel[] = [
     route: '/tracks',
     filled: true,
     accent: 'green',
-    image: '/channels/tracks.png',
+    image: '/devfest/channels/tracks.png',
   },
   {
     id: 'sponsors',
@@ -29,7 +29,7 @@ export const channels: Channel[] = [
     route: '/sponsors',
     filled: true,
     accent: 'yellow',
-    image: '/channels/sponsors.png',
+    image: '/devfest/channels/sponsors.png',
   },
   {
     id: 'team',
@@ -37,7 +37,7 @@ export const channels: Channel[] = [
     route: '/team',
     filled: true,
     accent: 'red',
-    image: '/channels/team.png',
+    image: '/devfest/channels/team.png',
   },
   {
     id: 'about',
@@ -45,7 +45,7 @@ export const channels: Channel[] = [
     route: '/about',
     filled: true,
     accent: 'blue',
-    image: '/channels/about.png',
+    image: '/devfest/channels/about.png',
   },
   {
     id: 'faq',
@@ -53,7 +53,7 @@ export const channels: Channel[] = [
     route: '/faq',
     filled: true,
     accent: 'green',
-    image: '/channels/faq.png',
+    image: '/devfest/channels/faq.png',
   },
   { id: 'blank-1', label: '', route: '', filled: false },
   { id: 'blank-2', label: '', route: '', filled: false },
