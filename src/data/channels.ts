@@ -3,7 +3,7 @@ import { siteConfig } from './siteConfig'
 
 /**
  * The home menu is a 4x3 grid of 12 channel slots, matching the real Wii Menu
- * page layout. Six are our real channels; the rest stay empty gray slots.
+ * page layout. Seven are our real channels; the rest stay empty gray slots.
  */
 export const channels: Channel[] = [
   {
@@ -55,7 +55,14 @@ export const channels: Channel[] = [
     accent: 'green',
     image: '/channels/faq.png',
   },
-  { id: 'blank-1', label: '', route: '', filled: false },
+  {
+    id: 'speaker',
+    label: 'Guest Speaker',
+    route: '/speaker',
+    filled: true,
+    accent: 'green',
+    image: '/channels/speaker.png',
+  },
   { id: 'blank-2', label: '', route: '', filled: false },
   { id: 'blank-3', label: '', route: '', filled: false },
   { id: 'blank-4', label: '', route: '', filled: false },

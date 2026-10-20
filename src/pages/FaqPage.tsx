@@ -1,26 +1,10 @@
-import { faqItems } from '../data/faq'
-import type { FaqCategory } from '../types/content'
-import { PageShell } from '../components/layout/PageShell'
-import { FaqAccordion } from '../components/content/FaqAccordion'
+import { ComingSoon } from '../components/content/ComingSoon'
 import { usePageMusic } from '../hooks/usePageMusic'
 
-const categoryOrder: FaqCategory[] = [
-  'General',
-  'Logistics',
-  'Team Formation',
-  'Judging & Prizes',
-]
-
+// The questions live in data/faq.ts (rendered with FaqAccordion), ready for
+// when this page goes live again.
 export function FaqPage() {
   usePageMusic('faq')
 
-  return (
-    <PageShell title="FAQ" subtitle="Everything you need to know before the event.">
-      {categoryOrder.map((category) => {
-        const items = faqItems.filter((item) => item.category === category)
-        if (items.length === 0) return null
-        return <FaqAccordion key={category} category={category} items={items} />
-      })}
-    </PageShell>
-  )
+  return <ComingSoon title="FAQ" />
 }
