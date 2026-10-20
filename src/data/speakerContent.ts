@@ -2,7 +2,7 @@ export const guestSpeaker = {
   name: 'Shefali',
   role: 'Cloud Architect & Google Developer Expert',
   /** Speaker photo under /public. */
-  photo: '/speaker/guestspeaker.webp',
+  photo: '/devfest/speaker/guestspeaker.webp',
   bio: [
     'Shefali is an engineering leader with over 20 years of experience driving enterprise modernization across major cloud providers.',
     'As a Cloud Architect and Google Developer Expert, she combines hands-on technical depth with strategic leadership to guide high-impact enterprise architecture.',

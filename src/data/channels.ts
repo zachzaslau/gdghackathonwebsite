@@ -61,7 +61,7 @@ export const channels: Channel[] = [
     route: '/speaker',
     filled: true,
     accent: 'green',
-    image: '/channels/speaker.png',
+    image: '/devfest/channels/speaker.png',
   },
   { id: 'blank-2', label: '', route: '', filled: false },
   { id: 'blank-3', label: '', route: '', filled: false },
