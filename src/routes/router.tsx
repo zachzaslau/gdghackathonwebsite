@@ -4,6 +4,7 @@ import { AboutPage } from '../pages/AboutPage'
 import { FaqPage } from '../pages/FaqPage'
 import { HomeMenuPage } from '../pages/HomeMenuPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
+import { SpeakerPage } from '../pages/SpeakerPage'
 import { SponsorsPage } from '../pages/SponsorsPage'
 import { TeamPage } from '../pages/TeamPage'
 import { TracksPage } from '../pages/TracksPage'
@@ -18,6 +19,7 @@ export const router = createBrowserRouter([
       { path: '/tracks', element: <TracksPage /> },
       { path: '/team', element: <TeamPage /> },
       { path: '/faq', element: <FaqPage /> },
+      { path: '/speaker', element: <SpeakerPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
